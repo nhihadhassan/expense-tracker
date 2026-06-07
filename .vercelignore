@@ -1,0 +1,13 @@
+# Deploy ONLY web/ (the auth-gated shell). Everything below stays local —
+# it contains real financial data / source statements and must never be uploaded.
+Scotiabank 2026 e-statements/
+Tangerine/
+amex/
+BMO/
+.claude/
+*.py
+*.db
+*.pdf
+*.md
+expense-dashboard.html
+favicon.svg
