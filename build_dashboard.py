@@ -156,14 +156,27 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .chartbox{position:relative; height:300px}
   .chartbox.tall{height:340px}
 
-  table{width:100%; border-collapse:collapse; font-size:13.5px}
-  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line)}
+  table{width:100%; border-collapse:separate; border-spacing:0; font-size:13.5px}
+  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle}
   th{color:var(--muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.5px;
-     position:sticky; top:0; background:var(--panel); cursor:pointer; user-select:none}
+     position:sticky; top:0; z-index:2; background:var(--panel); cursor:pointer; user-select:none}
   td.amt, th.amt{text-align:right; font-variant-numeric:tabular-nums}
-  .tablewrap{max-height:430px; overflow:auto; border-radius:var(--radius-sm); border:1px solid var(--line)}
-  .tag{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text)}
-  .dot{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .tablewrap{
+    max-height:430px; overflow:auto; border-radius:var(--radius-sm); border:1px solid var(--line);
+    background:var(--panel); position:relative; contain:paint; isolation:isolate;
+    clip-path:inset(0 round var(--radius-sm));
+  }
+  .tag{display:inline-flex; align-items:center; gap:6px; max-width:100%; font-size:12px; color:var(--text); line-height:1.25}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block; flex:0 0 9px}
+  .cell-chip{display:inline-flex; align-items:center; gap:7px; max-width:100%; min-width:0; line-height:1.25}
+  .cell-chip .cell-label{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  #txtable{table-layout:fixed}
+  #txtable th:nth-child(1), #txtable td:nth-child(1){width:150px}
+  #txtable th:nth-child(3), #txtable td:nth-child(3){width:150px}
+  #txtable th:nth-child(4), #txtable td:nth-child(4){width:180px}
+  #txtable th:nth-child(5), #txtable td:nth-child(5){width:120px}
+  #txtable td{overflow:hidden}
+  #txtable tbody tr:last-child td{border-bottom:0}
   .muted{color:var(--muted)}
 
   .btn{background:var(--panel-2); border:1px solid var(--line); color:var(--text);
@@ -207,7 +220,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .filterbar{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin:-6px 0 18px; min-height:0}
   .filterbar.empty{display:none}
   .filterbar .lbl, .accountbar .lbl{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px}
-  .accountbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:-4px 0 16px}
+  .accountbar{display:none; align-items:center; gap:10px; flex-wrap:wrap; margin:-4px 0 16px}
+  .accountbar.has-accounts{display:flex}
   #accountchips{display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0}
   .acct-chip{display:inline-flex; align-items:center; gap:7px; background:var(--panel-2); border:1px solid var(--line);
     color:var(--muted); border-radius:999px; padding:8px 13px; min-height:40px; font-size:12.5px; cursor:pointer;
@@ -331,7 +345,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .field input[type=date]{width:100%; min-width:0}
     .presets{margin-left:0; width:100%; display:grid; grid-template-columns:repeat(3,minmax(0,1fr))}
     .chip{width:100%; min-width:0; padding-left:8px; padding-right:8px}
-    .accountbar{display:block !important}
+    .accountbar.has-accounts{display:block}
     .accountbar .lbl{display:block; margin-bottom:8px}
     #accountchips{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%}
     .acct-chip{width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis}
@@ -397,7 +411,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     <div class="presets" id="presets"></div>
   </div>
 
-  <div class="accountbar" id="accountbar" style="display:none">
+  <div class="accountbar" id="accountbar">
     <span class="lbl">Accounts</span><span id="accountchips"></span>
   </div>
 
@@ -651,8 +665,8 @@ function anyFilter(){ return FILT.cats.size||FILT.merchants.size||FILT.months.si
 function renderAccounts(){
   ACCOUNTS=[...new Set(DATA.map(r=>r.account))].sort();
   const bar=$("accountbar");
-  if(ACCOUNTS.length<2){ bar.style.display="none"; return; }
-  bar.style.display="flex";
+  if(ACCOUNTS.length<2){ bar.classList.remove("has-accounts"); return; }
+  bar.classList.add("has-accounts");
   const on=a=>!FILT.accounts.size || FILT.accounts.has(a);
   $("accountchips").innerHTML=ACCOUNTS.map(a=>{
     const tot=DATA.filter(r=>r.account===a).reduce((s,r)=>s+r.amount,0);
@@ -850,11 +864,11 @@ function renderTable(rows){
   const tb=$("txtable").querySelector("tbody");
   tb.innerHTML = sorted.map(r=>{
     const catCell = LIVE
-      ? `<span class="cat-cell-sel"><span class="dot" style="background:${CAT_COLORS[r.category]||"#999"}"></span>`
+      ? `<span class="cat-cell-sel cell-chip"><span class="dot" style="background:${CAT_COLORS[r.category]||"#999"}"></span>`
         + catSelect(r.category, "cat-select", `data-merchant="${esc(r.merchant).replace(/"/g,'&quot;')}"`) + `</span>`
-      : `<span class="tag"><span class="dot" style="background:${CAT_COLORS[r.category]||"#999"}"></span>${r.category}</span>`;
+      : `<span class="cell-chip"><span class="dot" style="background:${CAT_COLORS[r.category]||"#999"}"></span><span class="cell-label">${esc(r.category)}</span></span>`;
     const acct = r.account || "";
-    const cardCell = `<span class="tag" style="white-space:nowrap"><span class="dot" style="background:${ACCOUNT_COLORS[acct]||"#999"}"></span>${esc(acctShort(acct))}</span>`;
+    const cardCell = `<span class="cell-chip"><span class="dot" style="background:${ACCOUNT_COLORS[acct]||"#999"}"></span><span class="cell-label">${esc(acctShort(acct))}</span></span>`;
     return `<tr>
       <td class="muted" style="white-space:nowrap">${parseISO(r.date).toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"})}</td>
       <td>${esc(r.merchant)}</td>
