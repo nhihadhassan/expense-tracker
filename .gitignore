@@ -1,0 +1,38 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# Local tool/runtime state
+.vercel/
+.claude/
+.agents/
+.env
+.env.*
+*.db
+*.sqlite
+*.sqlite3
+
+# Raw and generated financial data. Keep these local only.
+Scotiabank 2026 e-statements/
+amex/
+Tangerine/*
+!Tangerine/
+!Tangerine/normalize_tangerine.py
+BMO/*
+!BMO/
+!BMO/build_bmo_md.py
+*.pdf
+*.csv
+*.xlsx
+*.xls
+*.ofx
+*.qfx
+*.qif
+
+# Local baked-data exports
+expense-dashboard.html
+expense-dashboard.pdf
+
+# Personal launch helpers
+com.expensetracker.server.plist
+run-server.command
