@@ -1,7 +1,16 @@
 # 💸 Expense Tracker
 
-A local-first, private expense dashboard built from Scotiabank Visa e-statement PDFs.
+A local-first, private personal-finance dashboard that parses bank and credit-card
+statements — **Scotiabank, Tangerine, Amex, and BMO** — into one unified view with
+budgets, recurring-charge detection, anomaly alerts, and spending forecasts.
 Everything runs on your machine — no accounts, no cloud, no data leaves your computer.
+
+**Live demo (app shell):** https://expense-tracker-sooty-six-38.vercel.app
+
+> Privacy: this repository contains **code only**. All raw and generated financial data
+> (statement PDFs/CSVs, the SQLite DB, and the baked dashboard HTML) is git-ignored and
+> stays on your machine. The figures shown in the README are illustrative, not real
+> account data.
 
 ## Two ways to run it
 
@@ -70,10 +79,10 @@ Scotiabank PDFs store text in **EBCDIC (cp037) fonts** inside FlateDecode stream
 machine has no PDF library — so `ingest.py` decodes the compressed streams directly. Notable
 details: the permissive `stream...endstream` capture (to catch page-3 "continued" rows), the
 fixed-width 25-char merchant field, and foreign-currency rows carrying two amounts
-(`AMT 178.48 USD 248.09` → the posted **CAD** 248.09 is used). Totals reconcile exactly:
-**$5,236.00** across the 3 sample statements.
+(`AMT 178.48 USD 248.09` → the posted **CAD** 248.09 is used). Parsed totals reconcile
+**exactly** to each statement's printed total — verified by `test_recon.py`.
 
-## Feature status (roadmap = `~/.claude/plans/i-have-bank-and-velvet-kite.md`)
+## Feature status
 
 | Phase | Item | Status |
 |-------|------|--------|
@@ -113,18 +122,18 @@ The dashboard spans multiple accounts via per-issuer adapters in `ingest.py`:
   (balance trend, money in/out) and the income estimate.
 
 `ingest.load_all()` unifies them; each card transaction carries an `account` field, exposed as
-an **account filter** in the dashboard. Combined card spend reconciles to **$38,306.97**
-(Scotiabank $5,236.00 + Tangerine $18,389.62 + Amex $11,536.11 + BMO $3,145.24), ~98%
+an **account filter** in the dashboard. `ingest.load_all()` combines all four card sources,
+each card's total reconciling to its statement total, with ~98% of transactions
 auto-categorized — fix the rest in the rules panel.
 
 **Income classification:** chequing deposits are bucketed by `classify_deposit()` into
 payroll/business, government, cheques, peer e-transfers, bank transfers, internal moves, and
-interest. "Income" counts only payroll + government + cheques (≈ **$5,016/mo**), excluding peer
-e-transfers and account-to-account transfers — a far more realistic figure than counting all
-deposits. The chequing card shows the full deposit breakdown.
+interest. "Income" counts only payroll + government + cheques, excluding peer e-transfers and
+account-to-account transfers — a far more realistic figure than counting all deposits. The
+chequing card shows the full deposit breakdown.
 
 **BMO** — `parse_bmo_csv` (`BMO/*.csv`: Date,Description,Amount,Direction,AbsAmount). Direction
-`out` = purchases, `in` = payments (excluded). Reconciles to **$3,145.24**. The original BMO
+`out` = purchases, `in` = payments (excluded), reconciling to the statement total. The original BMO
 PDFs were image-only scans with no text layer; the CSV (user-exported/transcribed) is the
 working source. Any future bank that gives a CSV can be added the same way.
 
@@ -137,3 +146,7 @@ The local app is feature-complete. Remaining items are **cloud / hosted** featur
 external services & credentials — see **`CLOUD_ROADMAP.md`** for detailed implementation plans:
 Plaid live bank sync, login + multi-device sync, and real email/push alerts. (An optional
 Vite + ECharts SPA rewrite is also noted there — a tech refactor with low user-facing payoff.)
+
+## License
+
+Released under the [MIT License](LICENSE).
