@@ -296,7 +296,7 @@ def _money(text, pattern):
     return float(m.group(1).replace(",", "")) if m else 0.0
 
 
-def parse_pdf(path, rules=None, year=STATEMENT_YEAR):
+def parse_pdf(path, rules=None, year=None):
     """Parse one statement PDF -> (transactions, statement_summary).
 
     transactions: list of {date, merchant, raw, amount, category, ref, source}
@@ -304,6 +304,9 @@ def parse_pdf(path, rules=None, year=STATEMENT_YEAR):
     """
     fname = os.path.basename(path)
     text = extract_text(path)
+    stmt_match = re.search(r"Statement Date\s+([A-Z][a-z]{2}) (\d{1,2}), (\d{4})", text)
+    stmt_year = int(stmt_match.group(3)) if stmt_match else (year or STATEMENT_YEAR)
+    stmt_month = MONTHS[stmt_match.group(1)] if stmt_match else None
     txns, seen = [], set()
     for ref, tdate, _post, details, amount, cad in ROW_RE.findall(text):
         if any(x in details.upper() for x in EXCLUDE):
@@ -312,7 +315,12 @@ def parse_pdf(path, rules=None, year=STATEMENT_YEAR):
             continue
         seen.add(ref)
         mon, day = tdate.split()
-        d = date(year, MONTHS[mon], int(day)).isoformat()
+        tx_month = MONTHS[mon]
+        tx_year = year or stmt_year
+        # January statements commonly contain late-December activity.
+        if year is None and stmt_month is not None and tx_month > stmt_month + 6:
+            tx_year -= 1
+        d = date(tx_year, tx_month, int(day)).isoformat()
         amt = float((cad or amount).replace(",", ""))    # FX: posted CAD is 2nd figure
         field = details[:MERCHANT_FIELD_WIDTH].rstrip()  # exact field for rule re-apply
         merchant, category = resolve(details, rules)
@@ -323,7 +331,7 @@ def parse_pdf(path, rules=None, year=STATEMENT_YEAR):
             "ref": ref, "source": fname, "field": field,
         })
     stmt = None
-    m = re.search(r"Statement Date\s+([A-Z][a-z]{2}) (\d{1,2}), (\d{4})", text)
+    m = stmt_match
     if m:
         mon, day, yr = m.group(1), int(m.group(2)), int(m.group(3))
         purchases = _money(text, r"Purchases/charges\s*\+?\s*\$?([\d,]+\.\d{2})")
@@ -565,19 +573,39 @@ def parse_bmo_csv(path, rules=None, account="BMO Mastercard"):
 
 
 # --- Payments / credits (the inverse of purchases) — for Spend-vs-Payments ----
-def _scotia_payments(pdf_dir=DEFAULT_PDF_DIR, year=STATEMENT_YEAR):
+def parse_scotia_payments_file(path, year=None):
+    """Extract payment/credit rows from one Scotiabank statement."""
+    text = extract_text(path)
+    stmt = re.search(r"Statement Date\s+([A-Z][a-z]{2}) (\d{1,2}), (\d{4})", text)
+    stmt_year = int(stmt.group(3)) if stmt else (year or STATEMENT_YEAR)
+    stmt_month = MONTHS[stmt.group(1)] if stmt else None
+    out, seen = [], set()
+    for _ref, tdate, _post, details, amount, cad in ROW_RE.findall(text):
+        if not any(x in details.upper() for x in EXCLUDE):
+            continue
+        mon, day = tdate.split()
+        tx_month = MONTHS[mon]
+        tx_year = year or stmt_year
+        if year is None and stmt_month is not None and tx_month > stmt_month + 6:
+            tx_year -= 1
+        d = date(tx_year, tx_month, int(day)).isoformat()
+        amt = round(float((cad or amount).replace(",", "")), 2)
+        if (d, amt) in seen:
+            continue
+        seen.add((d, amt))
+        out.append({"date": d, "amount": amt, "account": "Scotiabank Visa"})
+    return out
+
+
+def _scotia_payments(pdf_dir=DEFAULT_PDF_DIR, year=None):
     out, seen = [], set()
     for path in sorted(glob.glob(os.path.join(pdf_dir, "*.pdf"))):
-        for ref, tdate, _post, details, amount, cad in ROW_RE.findall(extract_text(path)):
-            if not any(x in details.upper() for x in EXCLUDE):
+        for row in parse_scotia_payments_file(path, year):
+            key = (row["date"], row["amount"])
+            if key in seen:                      # dedupe overlapping statement periods
                 continue
-            mon, day = tdate.split()
-            d = date(year, MONTHS[mon], int(day)).isoformat()
-            amt = round(float((cad or amount).replace(",", "")), 2)
-            if (d, amt) in seen:                 # dedupe overlapping statement periods
-                continue
-            seen.add((d, amt))
-            out.append({"date": d, "amount": amt, "account": "Scotiabank Visa"})
+            seen.add(key)
+            out.append(row)
     return out
 
 

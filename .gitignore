@@ -8,6 +8,7 @@ __pycache__/
 .agents/
 .env
 .env.*
+!.env.example
 *.db
 *.sqlite
 *.sqlite3
@@ -32,6 +33,13 @@ BMO/*
 # Local baked-data exports
 expense-dashboard.html
 expense-dashboard.pdf
+
+# Supabase CLI state and migration history belonging to other apps that share
+# the rachel-tracker project. Keep only this app's migration in Git.
+supabase/.temp/
+supabase/migrations/*.sql
+!supabase/migrations/20260701020000_dashboard_admin_imports.sql
+!supabase/migrations/20260701023000_import_dedupe_constraints.sql
 
 # Personal launch helpers
 com.expensetracker.server.plist

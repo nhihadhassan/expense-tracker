@@ -11,3 +11,13 @@ BMO/
 *.md
 expense-dashboard.html
 favicon.svg
+
+# Hosted statement-import function and its shared parsers.
+!api/
+!api/**/*.py
+!ingest.py
+!Tangerine/
+Tangerine/*
+!Tangerine/normalize_tangerine.py
+!requirements.txt
+!.python-version

@@ -53,7 +53,7 @@
   .chip:hover{color:var(--text); border-color:var(--accent)}
   .chip.active{background:var(--accent); color:oklch(98% .006 286); border-color:var(--accent)}
 
-  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px}
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; grid-column:1 / -1}
   .kpi{
     background:linear-gradient(180deg,var(--panel),var(--panel-2));
     border:1px solid var(--line); border-radius:var(--radius); padding:18px 18px 16px; position:relative; overflow:hidden;
@@ -68,6 +68,14 @@
   .card.full{grid-column:1 / -1}
   .card h2{margin:0 0 5px; font-size:15px; letter-spacing:0; line-height:1.25}
   .card .hint{color:var(--muted); font-size:12.5px; margin:0 0 14px; line-height:1.45; max-width:76ch}
+  .panel-node.pref-hidden{display:none !important}
+  .panel-node.is-collapsed{grid-column:1 / -1; min-height:58px; padding:16px 18px}
+  .panel-node.is-collapsed > :not(h2):not(.collapsed-summary){display:none !important}
+  .panel-node.is-collapsed h2{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0}
+  .panel-node.is-collapsed.kpis{display:flex; align-items:center; justify-content:space-between;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius)}
+  .panel-node.is-collapsed.kpis::before{content:"Summary metrics"; font-size:15px; font-weight:650}
+  .panel-restore{margin-left:auto; min-height:32px; padding:6px 10px}
   .chartbox{position:relative; height:300px}
   .chartbox.tall{height:340px}
 
@@ -169,6 +177,48 @@
   .insight.warn{border-color:oklch(80% .16 88 / .35); background:oklch(80% .16 88 / .07)}
   .insight b{color:var(--text)}
   .insight .sub{color:var(--muted); font-size:12.5px; margin-top:2px}
+  .insight-body{min-width:0; flex:1}
+  .insight-dismiss{margin-left:auto; flex:0 0 32px; width:32px; height:32px; padding:0}
+
+  /* admin workspace */
+  [hidden]{display:none !important}
+  .view-nav.active{background:var(--panel-2); border-color:var(--accent); color:var(--text)}
+  .admin-view{margin-top:24px}
+  .admin-head{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:18px}
+  .admin-head h2{font-size:22px; margin:0 0 5px}
+  .admin-head p{margin:0; color:var(--muted); font-size:13px; max-width:68ch}
+  .admin-grid{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:18px; align-items:start}
+  .admin-section{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px}
+  .admin-section.wide{grid-column:1 / -1}
+  .admin-section h3{margin:0 0 5px; font-size:15px}
+  .admin-section .hint{margin:0 0 14px; color:var(--muted); font-size:12.5px; line-height:1.45}
+  .admin-list{display:flex; flex-direction:column; gap:8px}
+  .admin-panel-row{display:grid; grid-template-columns:34px minmax(0,1fr) 128px 34px 34px; gap:8px;
+    align-items:center; padding:9px; background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius-sm)}
+  .admin-panel-row.dragging{opacity:.45}
+  .drag-handle{cursor:grab; color:var(--muted)}
+  .admin-panel-name{min-width:0; font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .admin-state{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--text);
+    border-radius:var(--radius-sm); padding:7px 8px; font-size:12.5px}
+  .admin-icon{width:34px; height:34px; min-height:34px; padding:0}
+  .dismissed-row,.import-history-row{display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 0; border-bottom:1px solid var(--line); font-size:13px}
+  .dismissed-row:last-child,.import-history-row:last-child{border-bottom:0}
+  .empty-note{color:var(--muted); font-size:13px; padding:8px 0}
+  .import-drop{border:1px dashed var(--line-strong); border-radius:var(--radius); padding:24px 18px;
+    text-align:center; background:var(--panel-2); transition:border-color .18s var(--ease-out), background .18s var(--ease-out)}
+  .import-drop.over{border-color:var(--accent); background:oklch(63% .19 286 / .08)}
+  .import-drop strong{display:block; margin-bottom:5px; font-size:14px}
+  .import-drop span{color:var(--muted); font-size:12.5px}
+  .import-actions{display:flex; gap:9px; justify-content:center; flex-wrap:wrap; margin-top:14px}
+  .import-status{margin-top:12px; min-height:18px; font-size:12.5px; color:var(--muted)}
+  .import-status.err{color:var(--danger)} .import-status.ok{color:var(--success)}
+  .import-preview{margin-top:16px; border-top:1px solid var(--line); padding-top:16px}
+  .preview-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px}
+  .preview-kpi{background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:11px}
+  .preview-kpi .label{font-size:10.5px; text-transform:uppercase; color:var(--muted); letter-spacing:.5px}
+  .preview-kpi .value{font-size:16px; font-weight:650; margin-top:4px; overflow-wrap:anywhere}
+  .preview-warnings{color:var(--warning); font-size:12.5px; margin:10px 0}
 
   /* calendar heatmap */
   .cal-wrap{overflow-x:auto; padding-bottom:6px}
@@ -247,7 +297,8 @@
   .auth-note.ok{color:#51cf66} .auth-note.err{color:#ff6b6b}
   @media(max-width:860px){.recur-kpis{grid-template-columns:1fr}}
   @media(max-width:860px){.kpis{grid-template-columns:1fr 1fr} .grid{grid-template-columns:1fr}
-    .budget-row{grid-template-columns:120px 1fr; } .budget-nums{grid-column:1 / -1; text-align:left}}
+    .budget-row{grid-template-columns:120px 1fr; } .budget-nums{grid-column:1 / -1; text-align:left}
+    .admin-grid{grid-template-columns:1fr}.admin-section.wide{grid-column:auto}}
   @media(max-width:640px){
     .wrap,.controls,.grid,.kpis,.card,.header-row{width:100%; max-width:100%; min-width:0}
     .wrap{padding:20px 14px 42px}
@@ -265,6 +316,10 @@
     #accountchips{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%}
     .acct-chip{width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis}
     .kpis{grid-template-columns:1fr}
+    .admin-head{align-items:flex-start; flex-direction:column}
+    .admin-panel-row{grid-template-columns:34px minmax(0,1fr) 112px 34px}
+    .admin-panel-row [data-down]{display:none}
+    .preview-kpis{grid-template-columns:1fr 1fr}
     .card{padding:15px}
     .card.full{grid-column:auto}
     .chartbox{height:270px}
@@ -310,10 +365,13 @@
         <input type="file" id="uploadInput" accept="application/pdf" multiple hidden>
         <button class="btn" id="uploadBtn">Add statement</button>
       </span>
+      <button class="btn view-nav active" id="dashboardNav" type="button">Dashboard</button>
+      <button class="btn view-nav" id="adminNav" type="button">Admin</button>
       <button class="btn primary" id="export">Export CSV</button>
     </div>
   </header>
 
+  <main id="dashboardView">
   <div class="controls">
     <div class="field">
       <label for="from">From</label>
@@ -332,41 +390,41 @@
 
   <div class="filterbar empty" id="filterbar"></div>
 
-  <div class="kpis" id="kpis"></div>
+  <div class="grid" id="dashboardPanels">
+  <div class="kpis panel-node full" id="kpis" data-panel-id="summary" data-panel-title="Summary metrics"></div>
 
-  <div class="card full" id="insightsCard">
+  <div class="card full panel-node" id="insightsCard" data-panel-id="insights" data-panel-title="Insights & alerts">
     <h2>Insights &amp; alerts <span class="muted" id="insightcount"></span></h2>
     <p class="hint">Auto-generated from your spending: unusual purchases, month-over-month moves, and notable patterns in the selected range.</p>
     <div id="insights"></div>
   </div>
 
-  <div class="grid">
-    <div class="card full">
+    <div class="card full panel-node" id="monthlyCard" data-panel-id="monthly" data-panel-title="Monthly spending by category">
       <h2>Monthly spending by category</h2>
       <p class="hint">Hover a segment for the amount and its share of that month.</p>
       <div class="chartbox tall"><canvas id="monthly"></canvas></div>
     </div>
 
-    <div class="card">
+    <div class="card panel-node" id="categoryCard" data-panel-id="category" data-panel-title="Category breakdown">
       <h2>Category breakdown</h2>
       <p class="hint">Share of total spend in the selected range.</p>
       <div class="chartbox"><canvas id="doughnut"></canvas></div>
     </div>
 
-    <div class="card">
+    <div class="card panel-node" id="weeklyCard" data-panel-id="weekly" data-panel-title="Weekly spending summary">
       <h2>Weekly spending summary</h2>
       <p class="hint">Total spent per week (Mon to Sun).</p>
       <div class="chartbox"><canvas id="weekly"></canvas></div>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="heatmapCard" data-panel-id="heatmap" data-panel-title="Daily spending heatmap">
       <h2>Daily spending heatmap</h2>
       <p class="hint">Each square is a day. Brighter means more spent. Hover for details, click a day to filter everything to it.</p>
       <div class="cal-wrap"><div class="cal-months" id="calendar"></div></div>
       <div class="cal-legend"><span>Less</span><span class="sw" id="lg0"></span><span class="sw" id="lg1"></span><span class="sw" id="lg2"></span><span class="sw" id="lg3"></span><span class="sw" id="lg4"></span><span>More</span></div>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="budgetsCard" data-panel-id="budgets" data-panel-title="Budget targets">
       <h2>Budget targets</h2>
       <p class="hint">Spend vs. monthly budget for the selected range (budgets prorate to the range length). Edit any target; it is saved on this device.</p>
       <div class="budget-head">
@@ -376,7 +434,7 @@
       <div id="budgets"></div>
     </div>
 
-    <div class="card full" id="chequingCard" style="display:none">
+    <div class="card full panel-node" id="chequingCard" data-panel-id="chequing" data-panel-title="Chequing & net worth" style="display:none">
       <h2>Chequing &amp; net worth</h2>
       <p class="hint">Your Tangerine chequing balance over time. Income counts only payroll, business, and government deposits; peer e-transfers and transfers between your own accounts are excluded.</p>
       <div class="recur-kpis" id="chequingKpis"></div>
@@ -384,7 +442,7 @@
       <div class="chartbox tall" style="margin-top:16px"><canvas id="balanceTrend"></canvas></div>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="incomeCard" data-panel-id="income" data-panel-title="Income & cash flow">
       <h2>Income &amp; cash flow</h2>
       <p class="hint">Enter your monthly take-home income to see what you keep. "Typical spend" is your projected monthly spend (recurring + run-rate). Saved on this device.</p>
       <div class="income-row">
@@ -395,7 +453,7 @@
       <div class="chartbox tall" style="margin-top:16px"><canvas id="cashflow"></canvas></div>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="goalsCard" data-panel-id="goals" data-panel-title="Savings goals">
       <h2>Savings goals <span class="muted" id="goalcount"></span></h2>
       <p class="hint">Track progress toward what you're saving for. Edit the saved amount as you go; saved on this device.</p>
       <div class="goal-add">
@@ -407,19 +465,19 @@
       <div id="goals"></div>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="merchantsCard" data-panel-id="merchants" data-panel-title="Top merchants">
       <h2>Top merchants</h2>
       <p class="hint">Where your money actually went.</p>
       <div class="chartbox tall"><canvas id="merchants"></canvas></div>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="paymentsCard" data-panel-id="payments" data-panel-title="Spend vs. payments">
       <h2>💳 Spend vs. payments</h2>
       <p class="hint">Purchases charged vs. payments &amp; credits, per month across <b>all four cards</b>. Click an account chip up top to focus on one card.</p>
       <div class="chartbox tall"><canvas id="balance"></canvas></div>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="recurringCard" data-panel-id="recurring" data-panel-title="Recurring & subscriptions">
       <h2>🔁 Recurring &amp; subscriptions <span class="muted" id="recurcount"></span></h2>
       <p class="hint">Auto-detected card subscriptions (✦) plus ones you add yourself — e.g. things paid by e-transfer or on another account. Add what's missing; dismiss anything that isn't really recurring. Saved on this device.</p>
       <div class="recur-kpis" id="recurkpis"></div>
@@ -442,13 +500,13 @@
       <p class="hint" id="recurempty" style="display:none">No subscriptions yet — add one above.</p>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="forecastCard" data-panel-id="forecast" data-panel-title="Projected spending">
       <h2>Projected spending</h2>
       <p class="hint">Next 3 months projected from your detected recurring charges plus a per-category run-rate for variable spending. Solid = actual, dashed = forecast.</p>
       <div class="chartbox tall"><canvas id="forecast"></canvas></div>
     </div>
 
-    <div class="card full" id="rulesCard" style="display:none">
+    <div class="card full panel-node" id="rulesCard" data-panel-id="rules" data-panel-title="Categorization rules" style="display:none">
       <h2>Categorization rules <span class="muted" id="rulecount"></span></h2>
       <p class="hint">These keyword rules turn raw statement text into tidy merchant names + categories. Edit a category to reclassify every matching transaction instantly. New rules take priority (matched first).</p>
       <div class="rule-add">
@@ -465,7 +523,7 @@
       </div>
     </div>
 
-    <div class="card full">
+    <div class="card full panel-node" id="transactionsCard" data-panel-id="transactions" data-panel-title="Transactions">
       <h2>Transactions <span class="muted" id="txcount"></span></h2>
       <p class="hint">Click a column header to sort.</p>
       <div class="tablewrap">
@@ -482,6 +540,45 @@
       </div>
     </div>
   </div>
+  </main>
+
+  <section class="admin-view" id="adminView" hidden>
+    <div class="admin-head">
+      <div><h2>Dashboard admin</h2><p>Arrange the workspace, quiet alerts, and import new statements without changing your financial settings.</p></div>
+      <button class="btn" id="resetDashboard" type="button">Reset dashboard</button>
+    </div>
+    <div class="admin-grid">
+      <section class="admin-section">
+        <h3>Panels</h3>
+        <p class="hint">Drag to reorder, or use the arrow controls. Hidden panels remain available here.</p>
+        <div class="admin-list" id="adminPanelList"></div>
+      </section>
+      <section class="admin-section">
+        <h3>Dismissed warnings</h3>
+        <p class="hint">Restore alerts and insights you previously dismissed.</p>
+        <div id="dismissedWarnings"></div>
+      </section>
+      <section class="admin-section wide" id="importSection">
+        <h3>Import statement</h3>
+        <p class="hint">Preview Scotiabank or Tangerine PDFs, Amex or BMO CSV exports, and normalized Tangerine Markdown before updating the dashboard.</p>
+        <div class="import-drop" id="importDrop">
+          <strong>Drop one statement here</strong>
+          <span>PDF, CSV, or Markdown, up to 4 MB</span>
+          <div class="import-actions">
+            <input id="adminImportInput" type="file" accept=".pdf,.csv,.md,application/pdf,text/csv,text/markdown" hidden>
+            <button class="btn" id="chooseImport" type="button">Choose file</button>
+          </div>
+        </div>
+        <div class="import-status" id="adminImportStatus"></div>
+        <div class="import-preview" id="importPreview" hidden></div>
+      </section>
+      <section class="admin-section wide">
+        <h3>Import history</h3>
+        <p class="hint">Recent previews and completed updates. Original statement files are not retained.</p>
+        <div id="importHistory"><div class="empty-note">No hosted imports yet.</div></div>
+      </section>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -544,6 +641,172 @@ function weekLabel(iso){ const s=parseISO(iso); const e=new Date(s); e.setDate(e
 
 const $ = id => document.getElementById(id);
 const charts = {};
+
+// ---- Dashboard personalization (local-first, Supabase-synced when authenticated) ----
+const PREF_KEY="expense-dashboard-preferences-v1";
+const PREF_VERSION=1;
+const DEFAULT_PANEL_ORDER=["summary","insights","monthly","category","weekly","heatmap","budgets",
+  "chequing","income","goals","merchants","payments","recurring","forecast","rules","transactions"];
+let CURRENT_USER=null;
+let PREF_SAVE_TIMER=null;
+let DASH_PREF=normalizeDashboardPref(loadLocalDashboardPref());
+
+function defaultDashboardPref(){
+  return {version:PREF_VERSION, order:[...DEFAULT_PANEL_ORDER], states:{}, dismissedWarnings:[]};
+}
+function loadLocalDashboardPref(){
+  try{ return JSON.parse(localStorage.getItem(PREF_KEY)||"null")||defaultDashboardPref(); }
+  catch(e){ return defaultDashboardPref(); }
+}
+function normalizeDashboardPref(raw){
+  const base=defaultDashboardPref(); raw=raw&&typeof raw==="object"?raw:{};
+  const known=new Set(DEFAULT_PANEL_ORDER);
+  const order=[];
+  (Array.isArray(raw.order)?raw.order:[]).forEach(id=>{ if(known.has(id)&&!order.includes(id)) order.push(id); });
+  DEFAULT_PANEL_ORDER.forEach(id=>{ if(!order.includes(id)) order.push(id); });
+  const states={};
+  Object.entries(raw.states||{}).forEach(([id,state])=>{
+    if(known.has(id)&&["expanded","collapsed","hidden"].includes(state)) states[id]=state;
+  });
+  const dismissed=(Array.isArray(raw.dismissedWarnings)?raw.dismissedWarnings:[])
+    .filter(x=>x&&typeof x.id==="string").map(x=>({id:x.id,label:String(x.label||"Dismissed insight")}));
+  return {version:PREF_VERSION,order,states,dismissedWarnings:dismissed};
+}
+function availablePanelIds(){ return DASH_PREF.order.filter(id=>id!=="rules"||LIVE); }
+function panelState(id){ return DASH_PREF.states[id]||"expanded"; }
+function dismissedWarningIds(){ return new Set(DASH_PREF.dismissedWarnings.map(x=>x.id)); }
+
+async function loadDashboardPrefs(user){
+  CURRENT_USER=user||null;
+  const local=normalizeDashboardPref(loadLocalDashboardPref());
+  if(!sb||!CURRENT_USER){ DASH_PREF=local; return; }
+  try{
+    const {data,error}=await sb.from("exp_dashboard_preferences")
+      .select("version,layout,dismissed_warnings").eq("user_id",CURRENT_USER.id).maybeSingle();
+    if(error) throw error;
+    if(data){
+      DASH_PREF=normalizeDashboardPref(Object.assign({},data.layout||{},
+        {version:data.version,dismissedWarnings:data.dismissed_warnings||[]}));
+      localStorage.setItem(PREF_KEY,JSON.stringify(DASH_PREF));
+    }else{
+      DASH_PREF=local; queueDashboardPrefSave();
+    }
+  }catch(e){ DASH_PREF=local; }
+}
+function queueDashboardPrefSave(){
+  try{ localStorage.setItem(PREF_KEY,JSON.stringify(DASH_PREF)); }catch(e){}
+  clearTimeout(PREF_SAVE_TIMER);
+  PREF_SAVE_TIMER=setTimeout(syncDashboardPrefs,350);
+}
+async function syncDashboardPrefs(){
+  if(!sb||!CURRENT_USER) return;
+  try{
+    await sb.from("exp_dashboard_preferences").upsert({
+      user_id:CURRENT_USER.id, version:PREF_VERSION,
+      layout:{order:DASH_PREF.order,states:DASH_PREF.states},
+      dismissed_warnings:DASH_PREF.dismissedWarnings, updated_at:new Date().toISOString(),
+    },{onConflict:"user_id"});
+  }catch(e){}
+}
+function setPanelState(id,state){
+  if(state==="expanded") delete DASH_PREF.states[id]; else DASH_PREF.states[id]=state;
+  queueDashboardPrefSave(); applyDashboardPrefs(); renderAdmin();
+}
+function movePanel(id,delta){
+  const visible=availablePanelIds(); const i=visible.indexOf(id); const target=visible[i+delta];
+  if(i<0||!target) return;
+  const order=DASH_PREF.order, a=order.indexOf(id), b=order.indexOf(target);
+  [order[a],order[b]]=[order[b],order[a]];
+  queueDashboardPrefSave(); applyDashboardPrefs(); renderAdmin();
+}
+function applyDashboardPrefs(){
+  const host=$("dashboardPanels"); if(!host) return;
+  DASH_PREF.order.forEach(id=>{
+    const node=host.querySelector(`[data-panel-id="${id}"]`); if(node) host.appendChild(node);
+  });
+  host.querySelectorAll(".panel-node").forEach(node=>{
+    const id=node.dataset.panelId, state=panelState(id);
+    node.classList.toggle("pref-hidden",state==="hidden");
+    node.classList.toggle("is-collapsed",state==="collapsed");
+    let button=node.querySelector(".panel-restore");
+    if(state==="collapsed"){
+      if(!button){
+        button=document.createElement("button"); button.type="button"; button.className="btn panel-restore";
+        button.textContent="Expand"; button.onclick=()=>setPanelState(id,"expanded");
+        const target=node.tagName==="DIV"&&node.classList.contains("kpis")?node:node.querySelector("h2");
+        target?.appendChild(button);
+      }
+    }else if(button) button.remove();
+  });
+}
+function renderAdmin(){
+  const list=$("adminPanelList"); if(!list) return;
+  const ids=availablePanelIds();
+  list.innerHTML=ids.map((id,i)=>{
+    const node=document.querySelector(`[data-panel-id="${id}"]`); const title=node?.dataset.panelTitle||id;
+    return `<div class="admin-panel-row" draggable="true" data-panel="${id}">
+      <button class="btn admin-icon drag-handle" type="button" title="Drag ${esc(title)}" aria-label="Drag ${esc(title)}">::</button>
+      <span class="admin-panel-name">${esc(title)}</span>
+      <select class="admin-state" aria-label="Display ${esc(title)}">
+        ${["expanded","collapsed","hidden"].map(s=>`<option value="${s}" ${panelState(id)===s?'selected':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}
+      </select>
+      <button class="btn admin-icon" type="button" data-up title="Move up" aria-label="Move ${esc(title)} up" ${i===0?'disabled':''}>↑</button>
+      <button class="btn admin-icon" type="button" data-down title="Move down" aria-label="Move ${esc(title)} down" ${i===ids.length-1?'disabled':''}>↓</button>
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".admin-panel-row").forEach(row=>{
+    const id=row.dataset.panel;
+    row.querySelector("select").onchange=e=>setPanelState(id,e.target.value);
+    row.querySelector("[data-up]").onclick=()=>movePanel(id,-1);
+    row.querySelector("[data-down]").onclick=()=>movePanel(id,1);
+    row.ondragstart=e=>{ row.classList.add("dragging"); e.dataTransfer.setData("text/plain",id); };
+    row.ondragend=()=>row.classList.remove("dragging");
+    row.ondragover=e=>e.preventDefault();
+    row.ondrop=e=>{
+      e.preventDefault(); const from=e.dataTransfer.getData("text/plain"), to=id;
+      if(!from||from===to) return;
+      const order=DASH_PREF.order, fi=order.indexOf(from), ti=order.indexOf(to);
+      if(fi<0||ti<0) return; order.splice(ti,0,order.splice(fi,1)[0]);
+      queueDashboardPrefSave(); applyDashboardPrefs(); renderAdmin();
+    };
+  });
+  const dismissed=$("dismissedWarnings");
+  dismissed.innerHTML=DASH_PREF.dismissedWarnings.length?DASH_PREF.dismissedWarnings.map(x=>
+    `<div class="dismissed-row"><span>${esc(x.label)}</span><button class="btn" type="button" data-restore="${esc(x.id).replace(/"/g,'&quot;')}">Restore</button></div>`
+  ).join(""):'<div class="empty-note">No dismissed warnings.</div>';
+  dismissed.querySelectorAll("[data-restore]").forEach(b=>b.onclick=()=>restoreWarning(b.dataset.restore));
+}
+function dismissWarning(id,label){
+  if(!DASH_PREF.dismissedWarnings.some(x=>x.id===id)) DASH_PREF.dismissedWarnings.push({id,label});
+  queueDashboardPrefSave(); render(); renderAdmin();
+}
+function restoreWarning(id){
+  DASH_PREF.dismissedWarnings=DASH_PREF.dismissedWarnings.filter(x=>x.id!==id);
+  queueDashboardPrefSave(); render(); renderAdmin();
+}
+function showAppView(name){
+  const admin=name==="admin";
+  $("dashboardView").hidden=admin; $("adminView").hidden=!admin;
+  $("dashboardNav").classList.toggle("active",!admin); $("adminNav").classList.toggle("active",admin);
+  if(admin){ renderAdmin(); loadImportHistory(); }
+  if(location.hash!==`#${name}`) history.replaceState(null,"",`#${name}`);
+}
+$("dashboardNav").onclick=()=>showAppView("dashboard");
+$("adminNav").onclick=()=>showAppView("admin");
+window.addEventListener("hashchange",()=>showAppView(location.hash==="#admin"?"admin":"dashboard"));
+let RESET_ARMED=false, RESET_TIMER=null;
+$("resetDashboard").onclick=()=>{
+  const button=$("resetDashboard");
+  if(!RESET_ARMED){
+    RESET_ARMED=true; button.textContent="Confirm reset"; button.classList.add("primary");
+    clearTimeout(RESET_TIMER); RESET_TIMER=setTimeout(()=>{
+      RESET_ARMED=false; button.textContent="Reset dashboard"; button.classList.remove("primary");
+    },5000);
+    return;
+  }
+  clearTimeout(RESET_TIMER); RESET_ARMED=false; button.textContent="Reset dashboard"; button.classList.remove("primary");
+  DASH_PREF=defaultDashboardPref(); queueDashboardPrefSave(); applyDashboardPrefs(); render(); renderAdmin();
+};
 
 Chart.defaults.color = "#9aa0b4";
 Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
@@ -710,6 +973,7 @@ function render(){
   renderBalance();          // purchases vs payments, all cards (respects account filter)
   renderBudgets(catTot, days);
   renderTable(rows);
+  applyDashboardPrefs();
 }
 
 function baseOpts(extra){
@@ -1029,6 +1293,11 @@ function renderForecast(){
 }
 
 // ---- Auto-insights + anomaly detection (operates on the filtered range) ----
+function warningId(parts){
+  const s=parts.join("|"); let h=2166136261;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
+  return "warning-"+(h>>>0).toString(36);
+}
 function renderInsights(rows, total){
   const box=$("insights"); const out=[];
   if(!rows.length){ box.innerHTML='<div class="insight"><span class="ico">Info</span><div>No transactions in this view.</div></div>'; $("insightcount").textContent=""; return; }
@@ -1045,7 +1314,8 @@ function renderInsights(rows, total){
   anomalies.sort((a,b)=>b.amount-a.amount);
   const seenMer=new Set();
   const uniqAnoms=anomalies.filter(a=>{ if(seenMer.has(a.merchant)) return false; seenMer.add(a.merchant); return true; });
-  uniqAnoms.slice(0,3).forEach(a=>out.push({type:'alert', ico:'Alert',
+  uniqAnoms.slice(0,3).forEach(a=>out.push({type:'alert', ico:'Alert', dismissible:true,
+    id:warningId(["anomaly",a.account,a.date,a.merchant,a.amount]), label:`Unusual ${a.category} charge at ${a.merchant}`,
     html:`<div><b>Unusual ${a.category} charge:</b> ${esc(a.merchant)}, ${fmt(a.amount)} on ${dlabel(a.date)}.<div class="sub">About ${(a.amount/(a.med||1)).toFixed(1)}x a typical ${a.category} purchase (${fmt(a.med)}).</div></div>`}));
   // 2) Month-over-month
   const monthsP=[...new Set(rows.map(r=>r.date.slice(0,7)))].sort();
@@ -1065,7 +1335,8 @@ function renderInsights(rows, total){
           .reduce((o,r)=>{o[r.merchant]=(o[r.merchant]||0)+r.amount;return o;},{})).sort((a,b)=>b[1]-a[1])[0];
         drv = mover[1]>0 ? `, driven by more ${mc}${tm?` (${esc(tm[0])})`:''}` : `, mainly less ${mc}`;
       }
-      out.push({type: Math.abs(pct)>=25?'warn':'info', ico: pct>=0?'Up':'Down',
+      out.push({type: Math.abs(pct)>=25?'warn':'info', ico: pct>=0?'Up':'Down', dismissible:Math.abs(pct)>=25,
+        id:warningId(["month-change",cur,prev,Math.round(cT),Math.round(pT)]), label:`${MONTH_LABELS[+cur.slice(5)-1]} spending ${pct>=0?'increase':'decrease'}`,
         html:`<div><b>${MONTH_LABELS[+cur.slice(5)-1]} ${pct>=0?'up':'down'} ${Math.abs(pct).toFixed(0)}%</b> vs ${MONTH_LABELS[+prev.slice(5)-1]} (${fmt(cT)} vs ${fmt(pT)})${drv}.</div>`});
     }
   }
@@ -1080,8 +1351,17 @@ function renderInsights(rows, total){
   if(RECURRING.length){ const mo=RECURRING.reduce((a,r)=>a+r.monthly,0);
     out.push({type:'info', ico:'Repeat', html:`<div><b>${RECURRING.length} recurring charges</b>, about ${fmt(mo)}/mo (${fmt(mo*12)}/yr). See the subscriptions panel below.</div>`}); }
 
-  $("insightcount").textContent = `· ${out.length}`;
-  box.innerHTML = out.map(o=>`<div class="insight ${o.type==='alert'?'alert':o.type==='warn'?'warn':''}"><span class="ico">${o.ico}</span>${o.html}</div>`).join("");
+  const dismissed=dismissedWarningIds();
+  const visible=out.filter(o=>!o.dismissible||!dismissed.has(o.id));
+  $("insightcount").textContent = `· ${visible.length}`;
+  box.innerHTML = visible.map(o=>`<div class="insight ${o.type==='alert'?'alert':o.type==='warn'?'warn':''}">
+    <span class="ico">${o.ico}</span><div class="insight-body">${o.html}</div>
+    ${o.dismissible?`<button class="icon-btn insight-dismiss" type="button" data-warning="${o.id}" title="Dismiss warning" aria-label="Dismiss ${esc(o.label)}">x</button>`:""}
+  </div>`).join("");
+  box.querySelectorAll("[data-warning]").forEach(b=>{
+    const item=visible.find(o=>o.id===b.dataset.warning);
+    b.onclick=()=>dismissWarning(item.id,item.label);
+  });
 }
 
 // ---- Calendar heatmap (days dimension) ----
@@ -1152,6 +1432,7 @@ function applyData(){
   renderIncome();
   renderGoals();
   render();
+  renderAdmin();
 }
 
 // one-time wiring
@@ -1175,6 +1456,101 @@ async function uploadFiles(files){
     : `No new transactions (already imported ${parsed}).`;
   setTimeout(()=>$("uploadStatus").textContent="", 5000);
 }
+
+// ---- Hosted preview-first statement import ----
+let ACTIVE_IMPORT=null;
+function importStatus(message,kind){
+  const el=$("adminImportStatus"); el.textContent=message||"";
+  el.className="import-status"+(kind?" "+kind:"");
+}
+async function hostedAuthHeader(){
+  if(!sb) throw new Error("Sign in to import statements.");
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session) throw new Error("Your session expired. Sign in again.");
+  return {Authorization:`Bearer ${session.access_token}`};
+}
+async function apiResult(url,options){
+  const response=await fetch(url,options);
+  let data={}; try{ data=await response.json(); }catch(e){}
+  if(!response.ok) throw new Error(data.error||`Request failed (${response.status})`);
+  return data;
+}
+async function previewHostedImport(file){
+  if(!file) return;
+  $("importPreview").hidden=true; ACTIVE_IMPORT=null;
+  importStatus(`Reading ${file.name}…`);
+  try{
+    const headers=await hostedAuthHeader(); const body=new FormData(); body.append("file",file);
+    const result=await apiResult("/api/import/preview",{method:"POST",headers,body});
+    ACTIVE_IMPORT=result; renderImportPreview(result);
+    importStatus("Preview ready. Review the detected account and totals before importing.","ok");
+    loadImportHistory();
+  }catch(e){ importStatus(e.message,"err"); }
+}
+function countTotal(obj){ return Object.values(obj||{}).reduce((a,b)=>a+(+b||0),0); }
+function renderImportPreview(p){
+  const el=$("importPreview"); el.hidden=false;
+  const newRows=countTotal(p.new), duplicates=countTotal(p.duplicates);
+  el.innerHTML=`
+    <div class="preview-kpis">
+      <div class="preview-kpi"><div class="label">Detected</div><div class="value">${esc(p.account)}</div></div>
+      <div class="preview-kpi"><div class="label">Period</div><div class="value">${esc(p.dateFrom)} to ${esc(p.dateTo)}</div></div>
+      <div class="preview-kpi"><div class="label">New rows</div><div class="value">${newRows}</div></div>
+      <div class="preview-kpi"><div class="label">Duplicates</div><div class="value">${duplicates}</div></div>
+    </div>
+    <div class="muted" style="font-size:13px">Purchases ${fmt(+p.purchaseTotal||0)} · ${p.uncategorized||0} uncategorized</div>
+    ${(p.warnings||[]).length?`<div class="preview-warnings">${p.warnings.map(esc).join(" · ")}</div>`:""}
+    ${(p.sample||[]).length?`<div class="tablewrap" style="max-height:260px;margin-top:12px"><table>
+      <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th class="amt">Amount</th></tr></thead>
+      <tbody>${p.sample.map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.merchant)}</td><td>${esc(r.category)}</td><td class="amt">${fmt(+r.amount||0)}</td></tr>`).join("")}</tbody>
+    </table></div>`:""}
+    <div class="import-actions">
+      <button class="btn primary" id="commitImport" type="button">Import new rows</button>
+      <button class="btn" id="cancelImport" type="button">Cancel preview</button>
+    </div>`;
+  $("commitImport").onclick=commitHostedImport;
+  $("cancelImport").onclick=cancelHostedImport;
+}
+async function commitHostedImport(){
+  if(!ACTIVE_IMPORT) return;
+  const button=$("commitImport"); button.disabled=true; importStatus("Importing statement…");
+  try{
+    const headers=Object.assign({"Content-Type":"application/json"},await hostedAuthHeader());
+    const result=await apiResult("/api/import/commit",{method:"POST",headers,
+      body:JSON.stringify({importId:ACTIVE_IMPORT.importId})});
+    const inserted=countTotal(result.inserted);
+    importStatus(inserted?`Imported ${inserted} new row${inserted===1?'':'s'}. Dashboard updated.`:"No new rows were added; everything was already imported.","ok");
+    ACTIVE_IMPORT=null; $("importPreview").hidden=true;
+    await supaLoad(); applyData(); loadImportHistory();
+  }catch(e){ importStatus(e.message,"err"); button.disabled=false; }
+}
+async function cancelHostedImport(){
+  if(!ACTIVE_IMPORT) return;
+  try{
+    const headers=await hostedAuthHeader();
+    await apiResult(`/api/import/${encodeURIComponent(ACTIVE_IMPORT.importId)}`,{method:"DELETE",headers});
+    ACTIVE_IMPORT=null; $("importPreview").hidden=true; importStatus("Preview cancelled."); loadImportHistory();
+  }catch(e){ importStatus(e.message,"err"); }
+}
+async function loadImportHistory(){
+  const box=$("importHistory"); if(!box||!sb||!CURRENT_USER) return;
+  try{
+    const headers=await hostedAuthHeader(); const result=await apiResult("/api/imports",{headers});
+    const rows=result.imports||[];
+    box.innerHTML=rows.length?rows.map(row=>{
+      const when=new Date(row.committed_at||row.created_at).toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"});
+      return `<div class="import-history-row"><span><b>${esc(row.account)}</b><br><span class="muted">${esc(row.file_name)} · ${when}</span></span><span class="status-pill">${esc(row.status)}</span></div>`;
+    }).join(""):'<div class="empty-note">No hosted imports yet.</div>';
+  }catch(e){ box.innerHTML=`<div class="empty-note">Import history becomes available after the Supabase migration and Vercel secrets are configured.</div>`; }
+}
+$("chooseImport").onclick=()=>$("adminImportInput").click();
+$("adminImportInput").onchange=()=>{
+  const file=$("adminImportInput").files[0]; $("adminImportInput").value=""; previewHostedImport(file);
+};
+const importDrop=$("importDrop");
+importDrop.ondragover=e=>{ e.preventDefault(); importDrop.classList.add("over"); };
+importDrop.ondragleave=()=>importDrop.classList.remove("over");
+importDrop.ondrop=e=>{ e.preventDefault(); importDrop.classList.remove("over"); previewHostedImport(e.dataTransfer.files[0]); };
 
 // ---- Drag & drop import (live mode) ----
 const dz=$("dropzone"); let dzDepth=0;
@@ -1357,10 +1733,12 @@ $("addGoalBtn").onclick=()=>{
 
 async function boot(){
   LIVE = await loadBackend();
+  await loadDashboardPrefs(null);
   $("uploadWrap").style.display = LIVE ? "" : "none";
   $("rulesCard").style.display = LIVE ? "" : "none";
   if(LIVE){ $("subtitle").dataset.live="1"; renderRules(); }
   applyData();
+  showAppView(location.hash==="#admin"?"admin":"dashboard");
 }
 
 // ---- Hosted mode: Supabase auth + data (only runs when SUPA is configured) ----
@@ -1419,9 +1797,11 @@ async function afterLogin(session){
   LOGGED_IN=true;
   $("authgate").classList.remove("show");
   try{ await supaLoad(); }catch(e){ showGate("Couldn't load your data: "+e.message); LOGGED_IN=false; return; }
+  await loadDashboardPrefs(session.user);
   LIVE=false;                                  // hosted v1: rules editor/upload hidden
   $("uploadWrap").style.display="none"; $("rulesCard").style.display="none";
   applyData();
+  showAppView(location.hash==="#admin"?"admin":"dashboard");
   // small sign-out control in the header
   if(!$("signout")){ const b=document.createElement("button"); b.id="signout"; b.className="btn"; b.textContent="Sign out";
     b.onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
