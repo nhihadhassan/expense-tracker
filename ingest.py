@@ -241,6 +241,17 @@ MERCHANTS += [
     ("ESCAPE GAMES", "Escape Games", "Entertainment"),
     ("ESCAPESIM", "Escape eSIM", "Travel"),
     ("BULK BARN", "Bulk Barn", "Groceries"),
+    # June 2026 statement additions
+    ("CLAUDE.AI", "Claude (Anthropic)", "Subscriptions"),
+    ("AIR TRANSAT", "Air Transat", "Travel"),
+    ("AIRBNB", "Airbnb", "Travel"),
+    ("GETYOURGUIDE", "GetYourGuide", "Travel"),
+    ("FAMOUS PLAYER", "Famous Players", "Entertainment"),
+    ("SAUBLE FALLS", "Sauble Falls Park", "Entertainment"),
+    ("ERNIES SPORTS", "Ernie's Sports Experts", "Shopping"),
+    ("LEVI SCARBOROUGH", "Levi's", "Shopping"),
+    ("KITCHEN MARKET", "Kitchen Market", "Food & Dining"),
+    ("FAROOJ", "Farooj", "Food & Dining"),
 ]
 
 EXCLUDE = ["PAYMENT - THANK YOU"]            # card payments are not spending
@@ -249,6 +260,7 @@ ROW_RE = re.compile(
     r"\b(\d{3})\s+([A-Z][a-z]{2} \d{1,2})\s+([A-Z][a-z]{2} \d{1,2})\s+"
     r"(.*?)\s+([\d,]+\.\d{2})"               # details + first amount
     r"(?:\s+[A-Z]{3}\s+([\d,]+\.\d{2}))?"    # optional FX: "USD 248.09" -> posted CAD
+    r"(\s+-)?"                               # trailing ' -' marks a credit/refund
 )
 
 
@@ -308,8 +320,10 @@ def parse_pdf(path, rules=None, year=None):
     stmt_year = int(stmt_match.group(3)) if stmt_match else (year or STATEMENT_YEAR)
     stmt_month = MONTHS[stmt_match.group(1)] if stmt_match else None
     txns, seen = [], set()
-    for ref, tdate, _post, details, amount, cad in ROW_RE.findall(text):
+    for ref, tdate, _post, details, amount, cad, credit in ROW_RE.findall(text):
         if any(x in details.upper() for x in EXCLUDE):
+            continue
+        if credit:                           # trailing '-' = refund/credit, not a purchase
             continue
         if ref in seen:
             continue
@@ -580,8 +594,9 @@ def parse_scotia_payments_file(path, year=None):
     stmt_year = int(stmt.group(3)) if stmt else (year or STATEMENT_YEAR)
     stmt_month = MONTHS[stmt.group(1)] if stmt else None
     out, seen = [], set()
-    for _ref, tdate, _post, details, amount, cad in ROW_RE.findall(text):
-        if not any(x in details.upper() for x in EXCLUDE):
+    for _ref, tdate, _post, details, amount, cad, credit in ROW_RE.findall(text):
+        # keep card payments and any credit/refund (trailing '-'); skip purchases
+        if not (any(x in details.upper() for x in EXCLUDE) or credit):
             continue
         mon, day = tdate.split()
         tx_month = MONTHS[mon]
