@@ -21,13 +21,13 @@ def main():
     stmt_int = sum(x["interest"] for x in stmts)
     if not approx(s["total"], stmt_purch + stmt_int):
         fails.append(f"total {s['total']} != purchases {stmt_purch} + interest {stmt_int}")
-    if not approx(s["total"], 5236.00):
-        fails.append(f"expected total 5236.00, got {s['total']}")
-    if s["count"] != 84:
-        fails.append(f"expected 84 transactions, got {s['count']}")
+    if not approx(s["total"], 9606.56):
+        fails.append(f"expected total 9606.56, got {s['total']}")
+    if s["count"] != 132:
+        fails.append(f"expected 132 transactions, got {s['count']}")
 
     # 2) Balance chain: each statement's balance feeds the next as 'previous'
-    if [x["balance"] for x in stmts] != [1600.22, 1623.55, 2002.23]:
+    if [x["balance"] for x in stmts] != [1600.22, 1623.55, 2002.23, 501.13]:
         fails.append(f"balance chain wrong: {[x['balance'] for x in stmts]}")
 
     # 3) FX: LATAM Airlines uses posted CAD (248.09 etc.), not USD (178.48)
@@ -55,7 +55,7 @@ def main():
 
     # 7) Anomalies surface the big ones
     an = {a["merchant"] for a in ingest.detect_anomalies(txns)}
-    for m in ["FlightHub", "Ticketmaster"]:
+    for m in ["Air Transat", "Ticketmaster"]:
         if m not in an:
             fails.append(f"anomaly missed {m}")
 
@@ -66,14 +66,14 @@ def main():
                for a in alld["accounts"]}
     if by_acct.get("Tangerine Mastercard") != 18389.62:
         fails.append(f"Tangerine CC total wrong: {by_acct.get('Tangerine Mastercard')}")
-    if by_acct.get("Scotiabank Visa") != 5236.00:
+    if by_acct.get("Scotiabank Visa") != 9606.56:
         fails.append(f"Scotiabank total wrong: {by_acct.get('Scotiabank Visa')}")
     if by_acct.get("Amex") != 11536.11:
         fails.append(f"Amex total wrong: {by_acct.get('Amex')}")
     if by_acct.get("BMO Mastercard") != 3145.24:
         fails.append(f"BMO total wrong: {by_acct.get('BMO Mastercard')}")
     combined = round(sum(by_acct.values()), 2)
-    if combined != 38306.97:
+    if combined != 42677.53:
         fails.append(f"combined card total wrong: {combined}")
     # income classification: primary income < all non-internal deposits (transfers excluded)
     chq_all = alld["chequing"]
