@@ -508,6 +508,81 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .hero-actions{width:100%}
     .hero-actions .btn{flex:1}
   }
+
+  /* ===================== Tabbed pages ===================== */
+  .tab-off{display:none !important}
+  .pagetabs{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 20px; padding:6px;
+    background:var(--glass); backdrop-filter:blur(18px); border:1px solid var(--line); border-radius:999px}
+  .ptab{display:inline-flex; align-items:center; gap:8px; border:none; cursor:pointer;
+    background:transparent; color:var(--muted); font-size:14px; font-weight:650; font-family:"Inter",sans-serif;
+    padding:10px 18px; border-radius:999px; transition:background .2s,color .2s,box-shadow .2s}
+  .ptab .material-symbols-outlined{font-size:19px}
+  .ptab:hover{color:var(--text)}
+  .ptab.active{color:#fff; background:linear-gradient(135deg,#8b5cf6,#a855f7);
+    box-shadow:0 8px 20px -8px rgba(139,92,246,.6)}
+  @media(max-width:640px){
+    .pagetabs{border-radius:16px; overflow-x:auto; flex-wrap:nowrap}
+    .ptab{white-space:nowrap; padding:10px 14px}
+    .ptab span:not(.material-symbols-outlined){display:none}
+    .ptab .material-symbols-outlined{font-size:22px}
+  }
+
+  /* Stitch tip / fun-fact callout cards (Dashboard) */
+  .stitch-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:22px}
+  .stitch-cards:empty{display:none}
+  .scard{position:relative; overflow:hidden; border-radius:20px; padding:20px 22px;
+    background:var(--glass); backdrop-filter:blur(18px); border:1px solid var(--line);
+    border-left:4px solid var(--accent); display:flex; gap:14px; align-items:flex-start}
+  .scard.mint{border-left-color:var(--success)}
+  .scard.gold{border-left-color:var(--warning)}
+  .scard .sc-ic{flex:0 0 42px; width:42px; height:42px; border-radius:12px; display:flex; align-items:center;
+    justify-content:center; background:rgba(139,92,246,.16); color:var(--accent)}
+  .scard.mint .sc-ic{background:rgba(78,222,163,.16); color:var(--success)}
+  .scard.gold .sc-ic{background:rgba(250,204,21,.16); color:var(--warning)}
+  .scard h3{margin:0 0 4px; font-size:15px; font-family:"Montserrat",sans-serif; color:#fff}
+  .scard p{margin:0; font-size:13px; color:var(--muted); line-height:1.5}
+  .scard b{color:var(--text)}
+
+  /* Accounts: wallet cards */
+  .wallet-strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:22px}
+  .wallet-strip:empty{display:none}
+  .wallet-card{position:relative; overflow:hidden; border-radius:18px; padding:20px; min-height:150px;
+    display:flex; flex-direction:column; justify-content:space-between; color:#fff;
+    border:1px solid rgba(255,255,255,.14); box-shadow:0 16px 34px -20px rgba(0,0,0,.7)}
+  .wallet-card::after{content:""; position:absolute; top:-40px; right:-30px; width:120px; height:120px;
+    background:rgba(255,255,255,.14); filter:blur(30px); border-radius:50%}
+  .wallet-card .wc-top{display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:1}
+  .wallet-card .wc-name{font-size:14px; font-weight:700; letter-spacing:.02em}
+  .wallet-card .wc-kind{font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.85}
+  .wallet-card .wc-chip{width:30px; height:22px; border-radius:5px; background:rgba(255,255,255,.35)}
+  .wallet-card .wc-amt{font-size:26px; font-weight:800; font-family:"Montserrat",sans-serif; position:relative; z-index:1;
+    font-variant-numeric:tabular-nums}
+  .wallet-card .wc-meta{font-size:11.5px; opacity:.85; position:relative; z-index:1; display:flex; justify-content:space-between}
+
+  /* Accounts: upcoming payments list */
+  .upcoming-card:empty{display:none}
+  .up-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 0;
+    border-bottom:1px solid var(--line); font-size:13.5px}
+  .up-row:last-child{border-bottom:0}
+  .up-left{display:flex; align-items:center; gap:12px; min-width:0}
+  .up-ic{flex:0 0 38px; width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center;
+    background:rgba(139,92,246,.16); color:var(--accent)}
+  .up-name{font-weight:650; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .up-when{color:var(--muted); font-size:12px}
+  .up-amt{font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap}
+
+  /* Budgets & Goals: goal progress rings */
+  .goal-rings{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:16px}
+  .goal-rings:empty{display:none}
+  .ring-card{display:flex; gap:16px; align-items:center; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:16px; padding:16px 18px}
+  .ring{flex:0 0 92px; width:92px; height:92px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    position:relative}
+  .ring::before{content:""; position:absolute; inset:10px; border-radius:50%; background:var(--panel-2)}
+  .ring .ring-pct{position:relative; z-index:1; font-size:18px; font-weight:800; font-family:"Montserrat",sans-serif; color:#fff}
+  .ring-info .ring-name{font-size:14px; font-weight:700; color:#fff; margin-bottom:3px}
+  .ring-info .ring-sub{font-size:12px; color:var(--muted)}
+  .ring-info .ring-sub b{color:var(--success)}
 </style>
 </head>
 <body>
@@ -529,11 +604,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <aside id="sidebar">
   <div class="sb-brand"><span class="sb-logo">◈</span> Nhihad's Expense Tracker</div>
   <nav class="sb-nav">
-    <a class="active" data-scroll="top"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
-    <a data-scroll="insightsCard"><span class="material-symbols-outlined">analytics</span> Insights</a>
-    <a data-scroll="chequingCard"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</a>
-    <a data-scroll="budgetsCard"><span class="material-symbols-outlined">savings</span> Budgets</a>
-    <a data-scroll="recurringCard"><span class="material-symbols-outlined">autorenew</span> Subscriptions</a>
+    <a class="active" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+    <a data-page="accounts"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</a>
+    <a data-page="insights"><span class="material-symbols-outlined">analytics</span> Insights</a>
+    <a data-page="budgets"><span class="material-symbols-outlined">savings</span> Budgets &amp; Goals</a>
   </nav>
   <div class="sb-foot">
     <a id="sbAdmin"><span class="material-symbols-outlined">settings</span> Admin</a>
@@ -559,7 +633,13 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   </header>
 
   <main id="dashboardView">
-  <div class="hero-card">
+  <nav class="pagetabs" id="pagetabs">
+    <button class="ptab active" data-page="dashboard" type="button"><span class="material-symbols-outlined">dashboard</span> Dashboard</button>
+    <button class="ptab" data-page="accounts" type="button"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</button>
+    <button class="ptab" data-page="insights" type="button"><span class="material-symbols-outlined">analytics</span> Insights</button>
+    <button class="ptab" data-page="budgets" type="button"><span class="material-symbols-outlined">savings</span> Budgets &amp; Goals</button>
+  </nav>
+  <div class="hero-card" data-tab="dashboard">
     <div class="hero-main">
       <p class="hero-label" id="heroLabel">Total spent</p>
       <h2 class="hero-balance" id="heroTotal">$0</h2>
@@ -587,6 +667,17 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   </div>
 
   <div class="filterbar empty" id="filterbar"></div>
+
+  <!-- Dashboard: Stitch-style tip / fun-fact callouts -->
+  <div class="stitch-cards" id="stitchCards" data-tab="dashboard"></div>
+
+  <!-- Accounts: wallet cards + upcoming payments -->
+  <div class="wallet-strip" id="walletStrip" data-tab="accounts"></div>
+  <div class="card upcoming-card" id="upcomingCard" data-tab="accounts">
+    <h2>Upcoming payments</h2>
+    <p class="hint">Next expected charges from your detected &amp; manual subscriptions.</p>
+    <div id="upcomingList"></div>
+  </div>
 
   <div class="grid" id="dashboardPanels">
   <div class="kpis panel-node full" id="kpis" data-panel-id="summary" data-panel-title="Summary metrics"></div>
@@ -845,12 +936,21 @@ const PREF_KEY="expense-dashboard-preferences-v1";
 const PREF_VERSION=1;
 const DEFAULT_PANEL_ORDER=["summary","insights","monthly","category","weekly","heatmap","budgets",
   "chequing","income","goals","merchants","payments","recurring","forecast","rules","transactions"];
+// ---- Tabbed pages: each panel belongs to exactly one page ----
+const PAGE_ORDER=["dashboard","accounts","insights","budgets"];
+const PAGE_LABEL={dashboard:"Dashboard",accounts:"Accounts",insights:"Insights",budgets:"Budgets & Goals"};
+const TAB_OF={
+  summary:"dashboard", insights:"dashboard", monthly:"dashboard", category:"dashboard",
+  chequing:"accounts", payments:"accounts", merchants:"accounts", transactions:"accounts",
+  weekly:"insights", heatmap:"insights", recurring:"insights", forecast:"insights",
+  budgets:"budgets", goals:"budgets", income:"budgets", rules:"budgets",
+};
 let CURRENT_USER=null;
 let PREF_SAVE_TIMER=null;
 let DASH_PREF=normalizeDashboardPref(loadLocalDashboardPref());
 
 function defaultDashboardPref(){
-  return {version:PREF_VERSION, order:[...DEFAULT_PANEL_ORDER], states:{}, dismissedWarnings:[]};
+  return {version:PREF_VERSION, order:[...DEFAULT_PANEL_ORDER], states:{}, dismissedWarnings:[], activeTab:"dashboard"};
 }
 function loadLocalDashboardPref(){
   try{ return JSON.parse(localStorage.getItem(PREF_KEY)||"null")||defaultDashboardPref(); }
@@ -868,7 +968,8 @@ function normalizeDashboardPref(raw){
   });
   const dismissed=(Array.isArray(raw.dismissedWarnings)?raw.dismissedWarnings:[])
     .filter(x=>x&&typeof x.id==="string").map(x=>({id:x.id,label:String(x.label||"Dismissed insight")}));
-  return {version:PREF_VERSION,order,states,dismissedWarnings:dismissed};
+  const activeTab=PAGE_ORDER.includes(raw.activeTab)?raw.activeTab:"dashboard";
+  return {version:PREF_VERSION,order,states,dismissedWarnings:dismissed,activeTab};
 }
 function availablePanelIds(){ return DASH_PREF.order.filter(id=>id!=="rules"||LIVE); }
 function panelState(id){ return DASH_PREF.states[id]||"expanded"; }
@@ -901,7 +1002,7 @@ async function syncDashboardPrefs(){
   try{
     await sb.from("exp_dashboard_preferences").upsert({
       user_id:CURRENT_USER.id, version:PREF_VERSION,
-      layout:{order:DASH_PREF.order,states:DASH_PREF.states},
+      layout:{order:DASH_PREF.order,states:DASH_PREF.states,activeTab:DASH_PREF.activeTab},
       dismissed_warnings:DASH_PREF.dismissedWarnings, updated_at:new Date().toISOString(),
     },{onConflict:"user_id"});
   }catch(e){}
@@ -924,6 +1025,7 @@ function applyDashboardPrefs(){
   });
   host.querySelectorAll(".panel-node").forEach(node=>{
     const id=node.dataset.panelId, state=panelState(id);
+    node.classList.toggle("tab-off", TAB_OF[id]!==DASH_PREF.activeTab);
     node.classList.toggle("pref-hidden",state==="hidden");
     node.classList.toggle("is-collapsed",state==="collapsed");
     let button=node.querySelector(".panel-restore");
@@ -936,6 +1038,25 @@ function applyDashboardPrefs(){
       }
     }else if(button) button.remove();
   });
+}
+// Redraw every panel's chart/content so charts in a newly-visible tab size correctly
+// (Chart.js sizes to 0 inside a display:none container; we redraw on tab switch).
+function redrawAll(){
+  renderWalletCards(); renderUpcoming(); renderStitchCards();
+  renderRecurring(); renderForecast(); renderChequing(); renderIncome(); renderGoals();
+  render();  // draws doughnut/monthly/weekly/merchants + calendar/insights/balance/budgets/table + applyDashboardPrefs
+}
+function showTab(name){
+  if(!PAGE_ORDER.includes(name)) name="dashboard";
+  showAppView("dashboard");                       // leave the Admin view if we're in it
+  DASH_PREF.activeTab=name; queueDashboardPrefSave();
+  document.querySelectorAll("[data-tab]").forEach(el=>el.classList.toggle("tab-off", el.dataset.tab!==name));
+  document.querySelectorAll("#pagetabs [data-page], #sidebar .sb-nav a[data-page]")
+    .forEach(b=>b.classList.toggle("active", b.dataset.page===name));
+  if(location.hash!==`#tab-${name}`) history.replaceState(null,"",`#tab-${name}`);
+  applyDashboardPrefs();                           // unhide this tab's panels
+  redrawAll();                                     // charts size correctly now the containers are visible
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 function renderAdmin(){
   const list=$("adminPanelList"); if(!list) return;
@@ -986,12 +1107,16 @@ function showAppView(name){
   const admin=name==="admin";
   $("dashboardView").hidden=admin; $("adminView").hidden=!admin;
   $("dashboardNav").classList.toggle("active",!admin); $("adminNav").classList.toggle("active",admin);
-  if(admin){ renderAdmin(); loadImportHistory(); }
-  if(location.hash!==`#${name}`) history.replaceState(null,"",`#${name}`);
+  if(admin){ renderAdmin(); loadImportHistory(); if(location.hash!=="#admin") history.replaceState(null,"","#admin"); }
 }
-$("dashboardNav").onclick=()=>showAppView("dashboard");
+$("dashboardNav").onclick=()=>showTab(DASH_PREF.activeTab||"dashboard");
 $("adminNav").onclick=()=>showAppView("admin");
-window.addEventListener("hashchange",()=>showAppView(location.hash==="#admin"?"admin":"dashboard"));
+window.addEventListener("hashchange",()=>{
+  const h=location.hash;
+  if(h==="#admin") showAppView("admin");
+  else if(h.startsWith("#tab-")){ const n=h.slice(5); showTab(PAGE_ORDER.includes(n)?n:"dashboard"); }
+  else showAppView("dashboard");
+});
 let RESET_ARMED=false, RESET_TIMER=null;
 $("resetDashboard").onclick=()=>{
   const button=$("resetDashboard");
@@ -1426,6 +1551,70 @@ function allSubscriptions(){
   return [...manual, ...auto].sort((a,b)=>b.annual-a.annual);
 }
 
+// ---- Stitch-style page extras (reuse existing data) ----
+function renderWalletCards(){
+  const strip=$("walletStrip"); if(!strip) return;
+  const rows=filtered();                                  // respect date range + active filters
+  const byAcct={};
+  rows.forEach(r=>{ (byAcct[r.account]=byAcct[r.account]||{total:0,n:0}); byAcct[r.account].total+=r.amount; byAcct[r.account].n++; });
+  const accts=Object.keys(byAcct).sort((a,b)=>byAcct[b].total-byAcct[a].total);
+  const grad=c=>`linear-gradient(135deg, ${c}, ${c}bb 42%, #16233a)`;
+  const cards=accts.map(a=>{
+    const c=ACCOUNT_COLORS[a]||"#7c5cff";
+    return `<div class="wallet-card" style="background:${grad(c)}">
+      <div class="wc-top"><div><div class="wc-name">${esc(acctShort(a))}</div><div class="wc-kind">Credit card</div></div><div class="wc-chip"></div></div>
+      <div class="wc-amt">${fmt(byAcct[a].total)}</div>
+      <div class="wc-meta"><span>${byAcct[a].n} transactions</span><span>spent</span></div>
+    </div>`;
+  });
+  if(CHEQUING && CHEQUING.length){
+    const bal=CHEQUING[CHEQUING.length-1].balance;
+    cards.unshift(`<div class="wallet-card" style="background:linear-gradient(135deg,#4edea3,#2fb98abb 45%,#0d3b2e)">
+      <div class="wc-top"><div><div class="wc-name">Tangerine Chequing</div><div class="wc-kind">Balance</div></div><div class="wc-chip"></div></div>
+      <div class="wc-amt">${fmt(bal)}</div>
+      <div class="wc-meta"><span>${CHEQUING.length} transactions</span><span>current</span></div>
+    </div>`);
+  }
+  strip.innerHTML=cards.join("");
+}
+
+function renderUpcoming(){
+  const box=$("upcomingList"); if(!box) return;
+  const subs=allSubscriptions().map(s=>({...s, nd: s.nextDate ? new Date(s.nextDate) : null}));
+  subs.sort((a,b)=>{ if(a.nd&&b.nd) return a.nd-b.nd; if(a.nd) return -1; if(b.nd) return 1; return b.annual-a.annual; });
+  const top=subs.slice(0,6);
+  if(!top.length){ box.innerHTML='<div class="empty-note">No subscriptions detected yet.</div>'; return; }
+  box.innerHTML=top.map(s=>{
+    const when = s.nd ? s.nd.toLocaleDateString("en-CA",{month:"short",day:"numeric"}) : s.cadence;
+    return `<div class="up-row">
+      <div class="up-left"><div class="up-ic"><span class="material-symbols-outlined">autorenew</span></div>
+        <div><div class="up-name">${esc(s.merchant)}</div><div class="up-when">${esc(when)} · ${esc(s.cadence)}</div></div></div>
+      <div class="up-amt">${fmt(s.amount||s.monthly)}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderStitchCards(){
+  const box=$("stitchCards"); if(!box) return;
+  const rows=filtered();
+  if(!rows.length){ box.innerHTML=""; return; }
+  const total=rows.reduce((a,r)=>a+r.amount,0);
+  const cat={}; rows.forEach(r=>cat[r.category]=(cat[r.category]||0)+r.amount);
+  const top=Object.entries(cat).sort((a,b)=>b[1]-a[1])[0];
+  const big=rows.slice().sort((a,b)=>b.amount-a.amount)[0];
+  const annual=allSubscriptions().reduce((a,s)=>a+(s.annual||0),0);
+  const cards=[];
+  if(top) cards.push(["mint","pie_chart","Top category",
+    `<b>${esc(top[0])}</b> is ${(top[1]/total*100).toFixed(0)}% of spend in view — ${fmt(top[1])}.`]);
+  if(big) cards.push(["","bolt","Biggest purchase",
+    `<b>${esc(big.merchant)}</b> — ${fmt(big.amount)} on ${big.date}.`]);
+  if(annual>0) cards.push(["gold","autorenew","Recurring commitments",
+    `About <b>${fmt(annual)}/yr</b> across your subscriptions &amp; recurring charges.`]);
+  box.innerHTML=cards.map(([cls,ic,h,p])=>`<div class="scard ${cls}">
+    <div class="sc-ic"><span class="material-symbols-outlined">${ic}</span></div>
+    <div><h3>${h}</h3><p>${p}</p></div></div>`).join("");
+}
+
 function renderRecurring(){
   // populate selects once
   if(!$("subCadence").options.length){
@@ -1654,25 +1843,15 @@ $("from").onchange=$("to").onchange=()=>{ setPreset(null); render(); };
 $("uploadBtn").onclick=()=>$("uploadInput").click();
 $("uploadInput").onchange=()=>{ uploadFiles([...$("uploadInput").files]); $("uploadInput").value=""; };
 
-// Shell wiring: sidebar nav + hero actions
+// Shell wiring: page tabs (top bar + sidebar) + hero actions
 (function(){
-  const scrollTo=(id)=>{ const el = (id==="top") ? document.body : $(id);
-    if(el && el.scrollIntoView) el.scrollIntoView({behavior:"smooth", block:"start"}); };
-  document.querySelectorAll("#sidebar .sb-nav a").forEach(a=>{
-    a.onclick=(e)=>{ e.preventDefault();
-      if(typeof showAppView==="function") showAppView("dashboard");
-      document.querySelectorAll("#sidebar .sb-nav a").forEach(x=>x.classList.remove("active"));
-      a.classList.add("active");
-      let t=a.getAttribute("data-scroll");
-      if(t==="chequingCard" && $("chequingCard") && $("chequingCard").style.display==="none") t="incomeCard";
-      scrollTo(t); };
+  document.querySelectorAll("#pagetabs [data-page], #sidebar .sb-nav a[data-page]").forEach(el=>{
+    el.onclick=(e)=>{ e.preventDefault(); showTab(el.dataset.page); };
   });
   if($("sbAdmin")) $("sbAdmin").onclick=(e)=>{ e.preventDefault(); showAppView("admin"); };
-  if($("sbSignout")) $("sbSignout").onclick=(e)=>{ e.preventDefault(); const s=$("signout");
-    if(s) s.click(); else importStatus && null; };
+  if($("sbSignout")) $("sbSignout").onclick=(e)=>{ e.preventDefault(); const s=$("signout"); if(s) s.click(); };
   if($("heroExport")) $("heroExport").onclick=()=>$("export").click();
-  if($("heroInsights")) $("heroInsights").onclick=()=>{ const el=$("insightsCard");
-    if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); };
+  if($("heroInsights")) $("heroInsights").onclick=()=>showTab("insights");
 })();
 
 async function uploadFiles(files){
@@ -1954,6 +2133,19 @@ function renderGoals(){
         <button class="icon-btn" data-del="${i}" title="Delete goal" aria-label="Delete goal" style="margin-left:8px">Del</button></span>
     </div>`;
   }).join("");
+  // Stitch-style progress rings for the featured goals (prepended above the bars)
+  const rings = GOALS.slice(0,3).map(g=>{
+    const pct = g.target>0 ? Math.min(100, g.saved/g.target*100) : 0;
+    const done = g.target>0 && g.saved>=g.target;
+    const col = done ? "var(--success)" : "var(--accent)";
+    return `<div class="ring-card">
+      <div class="ring" style="background:conic-gradient(${col} ${(pct*3.6).toFixed(1)}deg, rgba(255,255,255,.08) 0)">
+        <span class="ring-pct">${pct.toFixed(0)}%</span></div>
+      <div class="ring-info"><div class="ring-name">${esc(g.name)}</div>
+        <div class="ring-sub"><b>${fmt0(g.saved)}</b> of ${fmt0(g.target)}</div></div>
+    </div>`;
+  }).join("");
+  box.insertAdjacentHTML("afterbegin", `<div class="goal-rings">${rings}</div>`);
   box.querySelectorAll(".goal-input").forEach(inp=>inp.onchange=()=>{
     GOALS[+inp.dataset.i].saved=Math.max(0, +inp.value||0); saveGoals(); renderGoals(); });
   box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
@@ -1973,7 +2165,9 @@ async function boot(){
   $("rulesCard").style.display = LIVE ? "" : "none";
   if(LIVE){ $("subtitle").dataset.live="1"; renderRules(); }
   applyData();
-  showAppView(location.hash==="#admin"?"admin":"dashboard");
+  if(location.hash==="#admin") showAppView("admin");
+  else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
+  else showTab(DASH_PREF.activeTab||"dashboard");
 }
 
 // ---- Hosted mode: Supabase auth + data (only runs when SUPA is configured) ----
@@ -2036,7 +2230,9 @@ async function afterLogin(session){
   LIVE=false;                                  // hosted v1: rules editor/upload hidden
   $("uploadWrap").style.display="none"; $("rulesCard").style.display="none";
   applyData();
-  showAppView(location.hash==="#admin"?"admin":"dashboard");
+  if(location.hash==="#admin") showAppView("admin");
+  else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
+  else showTab(DASH_PREF.activeTab||"dashboard");
   // small sign-out control in the header
   if(!$("signout")){ const b=document.createElement("button"); b.id="signout"; b.className="btn"; b.textContent="Sign out";
     b.onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
