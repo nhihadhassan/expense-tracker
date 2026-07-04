@@ -46,10 +46,16 @@
   }
   .field{display:flex; flex-direction:column; gap:6px}
   .field label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px}
-  .field input[type=date]{
+  .field input[type=date], .field select{
     background:var(--panel-2); border:1px solid var(--line); color:var(--text);
     border-radius:var(--radius-sm); padding:10px 11px; min-height:40px; font-size:14px; color-scheme:dark;
   }
+  .field select{
+    -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:34px; min-width:150px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center;
+  }
+  .field select:hover{border-color:var(--accent)}
   .presets{display:flex; gap:8px; flex-wrap:wrap; margin-left:auto}
   .chip{
     background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
@@ -621,11 +627,11 @@
   <div class="controls">
     <div class="field">
       <label for="from">From</label>
-      <input type="month" id="from">
+      <select id="from"></select>
     </div>
     <div class="field">
       <label for="to">To</label>
-      <input type="month" id="to">
+      <select id="to"></select>
     </div>
     <button class="btn" id="presetToggle" type="button">Jump to month ▾</button>
     <div class="presets collapsed" id="presets"></div>
@@ -1209,6 +1215,11 @@ function setPreset(btn){
   if(btn) btn.classList.add("active");
 }
 
+function buildMonthSelects(){
+  const months = [...new Set(DATA.map(r=>r.date.slice(0,7)))].sort();
+  const opts = months.map(m=>{ const [y,mm]=m.split("-"); return `<option value="${m}">${MONTH_LABELS[+mm-1]} ${y}</option>`; }).join("");
+  $("from").innerHTML=opts; $("to").innerHTML=opts;
+}
 function buildPresets(){
   const months = [...new Set(DATA.map(r=>r.date.slice(0,7)))].sort();
   const box = $("presets"); box.innerHTML="";
@@ -1919,9 +1930,8 @@ async function loadBackend(){
 function applyData(){
   computeBounds();
   RECURRING=detectRecurring();
-  $("from").min=$("to").min=MIN; $("from").max=$("to").max=MAX;
-  if(!$("from").value || $("from").value<MIN || $("from").value>MAX) $("from").value=MIN;
-  if(!$("to").value   || $("to").value<MIN   || $("to").value>MAX)   $("to").value=MAX;
+  buildMonthSelects();
+  $("from").value=MIN; $("to").value=MAX;
   buildPresets();
   renderRecurring();
   renderForecast();        // sets PROJECTED_MONTHLY
