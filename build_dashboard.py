@@ -284,7 +284,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .admin-section h3{margin:0 0 5px; font-size:15px}
   .admin-section .hint{margin:0 0 14px; color:var(--muted); font-size:12.5px; line-height:1.45}
   .admin-list{display:flex; flex-direction:column; gap:8px}
-  .admin-panel-row{display:grid; grid-template-columns:34px minmax(0,1fr) 128px 34px 34px; gap:8px;
+  .admin-panel-row{display:grid; grid-template-columns:34px minmax(0,1fr) 128px 118px 34px 34px; gap:8px;
     align-items:center; padding:9px; background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius-sm)}
   .admin-panel-row.dragging{opacity:.45}
   .drag-handle{cursor:grab; color:var(--muted)}
@@ -408,7 +408,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .acct-chip{width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis}
     .kpis{grid-template-columns:1fr}
     .admin-head{align-items:flex-start; flex-direction:column}
-    .admin-panel-row{grid-template-columns:34px minmax(0,1fr) 112px 34px}
+    .admin-panel-row{grid-template-columns:34px minmax(0,1fr) 104px 104px 34px}
     .admin-panel-row [data-down]{display:none}
     .preview-kpis{grid-template-columns:1fr 1fr}
     .card{padding:15px}
@@ -583,6 +583,53 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .ring-info .ring-name{font-size:14px; font-weight:700; color:#fff; margin-bottom:3px}
   .ring-info .ring-sub{font-size:12px; color:var(--muted)}
   .ring-info .ring-sub b{color:var(--success)}
+
+  /* ===================== v3 refinements ===================== */
+  #subtitle{display:none}                         /* redundant with the wallet/hero cards */
+  .presets.collapsed{display:none}
+  #presetToggle{align-self:flex-end}
+
+  /* hero: last-month / last-week micro stats */
+  .hero-right{position:relative; z-index:1; display:flex; flex-direction:column; gap:14px; align-items:flex-end}
+  .hero-stats{display:flex; gap:12px}
+  .hstat{background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:14px; padding:12px 16px; min-width:130px}
+  .hstat-label{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted)}
+  .hstat-val{font-size:22px; font-weight:800; font-family:"Montserrat",sans-serif; color:#fff; margin-top:3px; font-variant-numeric:tabular-nums}
+  .hstat-sub{font-size:11.5px; color:var(--muted); margin-top:2px}
+  @media(max-width:900px){ .hero-right{align-items:stretch; width:100%} .hero-stats{flex-wrap:wrap} .hstat{flex:1} }
+
+  /* wallet cards — richer Stitch-style face */
+  .wallet-card .wc-net{font-size:12px; font-weight:800; letter-spacing:.04em; opacity:.95}
+  .wallet-card .wc-digits{position:relative; z-index:1; font-family:"JetBrains Mono","Inter",monospace; letter-spacing:.18em; font-size:13px; opacity:.9; margin-top:2px}
+  .wallet-card .wc-util{position:relative; z-index:1; height:5px; border-radius:5px; background:rgba(255,255,255,.25); overflow:hidden; margin-top:8px}
+  .wallet-card .wc-util > i{display:block; height:100%; background:#fff; border-radius:5px}
+  .wallet-card .wc-line{position:relative; z-index:1; display:flex; justify-content:space-between; font-size:11px; opacity:.9; margin-top:6px}
+
+  /* panel header collapse toggle (no admin needed) */
+  .card h2{display:flex; align-items:center; gap:8px}
+  .panel-toggle{margin-left:auto; flex:0 0 auto; width:28px; height:28px; border-radius:8px; cursor:pointer;
+    background:transparent; border:1px solid var(--line); color:var(--muted); font-size:12px; line-height:1;
+    transition:color .2s,border-color .2s,background .2s}
+  .panel-toggle:hover{color:var(--text); border-color:var(--accent)}
+  .panel-node.is-collapsed .panel-toggle{color:var(--accent)}
+
+  /* Insights: merchant heatmap + fun fact */
+  .merch-heat{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
+  .mh-cell{border-radius:14px; padding:14px; border:1px solid var(--line); position:relative; overflow:hidden;
+    display:flex; flex-direction:column; gap:4px; min-height:92px; justify-content:flex-end}
+  .mh-cell .mh-name{font-size:13px; font-weight:700; color:#fff; z-index:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .mh-cell .mh-amt{font-size:15px; font-weight:800; font-family:"Montserrat",sans-serif; color:#fff; z-index:1}
+  .mh-cell .mh-visits{font-size:11px; color:rgba(255,255,255,.75); z-index:1}
+  .fun-card{display:flex; gap:16px; align-items:center; border-radius:20px; padding:22px 24px;
+    background:linear-gradient(120deg, rgba(87,27,193,.4), rgba(78,222,163,.14)); border:1px solid var(--line)}
+  .fun-card .fun-ic{flex:0 0 54px; width:54px; height:54px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.12); color:var(--success); font-size:28px}
+  .fun-card h3{margin:0 0 4px; font-size:13px; text-transform:uppercase; letter-spacing:.12em; color:var(--success)}
+  .fun-card p{margin:0; font-size:16px; line-height:1.5; color:#fff} .fun-card b{color:var(--secondary-fixed,#e9ddff)}
+
+  /* Budgets & Goals: milestone / projection callouts */
+  .bg-callouts{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:16px}
+  .bg-callouts:empty{display:none}
 </style>
 </head>
 <body>
@@ -645,21 +692,28 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <h2 class="hero-balance" id="heroTotal">$0</h2>
       <div class="hero-trend" id="heroTrend"></div>
     </div>
-    <div class="hero-actions">
-      <button class="btn primary" id="heroExport">Export CSV</button>
-      <button class="btn" id="heroInsights">View insights</button>
+    <div class="hero-right">
+      <div class="hero-stats">
+        <div class="hstat"><div class="hstat-label">Last month</div><div class="hstat-val" id="heroMonth">–</div><div class="hstat-sub" id="heroMonthSub"></div></div>
+        <div class="hstat"><div class="hstat-label">Last 7 days</div><div class="hstat-val" id="heroWeek">–</div><div class="hstat-sub" id="heroWeekSub"></div></div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn primary" id="heroExport">Export CSV</button>
+        <button class="btn" id="heroInsights">View insights</button>
+      </div>
     </div>
   </div>
   <div class="controls">
     <div class="field">
       <label for="from">From</label>
-      <input type="date" id="from">
+      <input type="month" id="from">
     </div>
     <div class="field">
       <label for="to">To</label>
-      <input type="date" id="to">
+      <input type="month" id="to">
     </div>
-    <div class="presets" id="presets"></div>
+    <button class="btn" id="presetToggle" type="button">Jump to month ▾</button>
+    <div class="presets collapsed" id="presets"></div>
   </div>
 
   <div class="accountbar" id="accountbar">
@@ -678,6 +732,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     <p class="hint">Next expected charges from your detected &amp; manual subscriptions.</p>
     <div id="upcomingList"></div>
   </div>
+
+  <!-- Insights: fun fact + merchant heatmap -->
+  <div class="fun-card" id="funCard" data-tab="insights">
+    <div class="fun-ic"><span class="material-symbols-outlined" style="font-size:28px">emoji_objects</span></div>
+    <div><h3>Fun fact</h3><p id="funText">—</p></div>
+  </div>
+  <div class="card" id="merchHeatCard" data-tab="insights">
+    <h2>Merchant heatmap</h2>
+    <p class="hint">Where you shop most — brighter means more spent. Click a merchant to filter everything to it.</p>
+    <div class="merch-heat" id="merchHeat"></div>
+  </div>
+
+  <!-- Budgets &amp; Goals: milestone / projection callouts -->
+  <div class="bg-callouts" id="bgCallouts" data-tab="budgets"></div>
 
   <div class="grid" id="dashboardPanels">
   <div class="kpis panel-node full" id="kpis" data-panel-id="summary" data-panel-title="Summary metrics"></div>
@@ -919,8 +987,12 @@ const dlabel = d => parseISO(d).toLocaleDateString("en-CA",{month:"short",day:"n
 const parseISO = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-let MIN, MAX;
-function computeBounds(){ const ad=DATA.map(r=>r.date).sort(); MIN=ad[0]; MAX=ad[ad.length-1]; }
+let MIN, MAX;  // month strings "YYYY-MM"
+function computeBounds(){ const ad=DATA.map(r=>r.date).sort(); MIN=ad[0].slice(0,7); MAX=ad[ad.length-1].slice(0,7); }
+// The From/To inputs are month pickers ("YYYY-MM"); these expand them to day bounds for filtering.
+function monthEnd(ym){ const [y,m]=ym.split("-").map(Number); return new Date(y,m,0).getDate(); }
+function dayFrom(){ const v=($("from").value||MIN||"0000-01").slice(0,7); return v+"-01"; }
+function dayTo(){ const v=($("to").value||MAX||"9999-12").slice(0,7); return v+"-"+String(monthEnd(v)).padStart(2,"0"); }
 
 // Mon to Sun week key + label
 function weekStart(dt){ const d=new Date(dt); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); d.setHours(0,0,0,0); return d; }
@@ -950,8 +1022,10 @@ let PREF_SAVE_TIMER=null;
 let DASH_PREF=normalizeDashboardPref(loadLocalDashboardPref());
 
 function defaultDashboardPref(){
-  return {version:PREF_VERSION, order:[...DEFAULT_PANEL_ORDER], states:{}, dismissedWarnings:[], activeTab:"dashboard"};
+  return {version:PREF_VERSION, order:[...DEFAULT_PANEL_ORDER], states:{}, dismissedWarnings:[], activeTab:"dashboard", tabAssign:{}};
 }
+// Which page a panel lives on — admin overrides win over the built-in TAB_OF map.
+function tabOf(id){ return (DASH_PREF.tabAssign && DASH_PREF.tabAssign[id]) || TAB_OF[id] || "dashboard"; }
 function loadLocalDashboardPref(){
   try{ return JSON.parse(localStorage.getItem(PREF_KEY)||"null")||defaultDashboardPref(); }
   catch(e){ return defaultDashboardPref(); }
@@ -969,7 +1043,9 @@ function normalizeDashboardPref(raw){
   const dismissed=(Array.isArray(raw.dismissedWarnings)?raw.dismissedWarnings:[])
     .filter(x=>x&&typeof x.id==="string").map(x=>({id:x.id,label:String(x.label||"Dismissed insight")}));
   const activeTab=PAGE_ORDER.includes(raw.activeTab)?raw.activeTab:"dashboard";
-  return {version:PREF_VERSION,order,states,dismissedWarnings:dismissed,activeTab};
+  const tabAssign={};
+  Object.entries(raw.tabAssign||{}).forEach(([id,pg])=>{ if(known.has(id)&&PAGE_ORDER.includes(pg)) tabAssign[id]=pg; });
+  return {version:PREF_VERSION,order,states,dismissedWarnings:dismissed,activeTab,tabAssign};
 }
 function availablePanelIds(){ return DASH_PREF.order.filter(id=>id!=="rules"||LIVE); }
 function panelState(id){ return DASH_PREF.states[id]||"expanded"; }
@@ -1002,7 +1078,7 @@ async function syncDashboardPrefs(){
   try{
     await sb.from("exp_dashboard_preferences").upsert({
       user_id:CURRENT_USER.id, version:PREF_VERSION,
-      layout:{order:DASH_PREF.order,states:DASH_PREF.states,activeTab:DASH_PREF.activeTab},
+      layout:{order:DASH_PREF.order,states:DASH_PREF.states,activeTab:DASH_PREF.activeTab,tabAssign:DASH_PREF.tabAssign},
       dismissed_warnings:DASH_PREF.dismissedWarnings, updated_at:new Date().toISOString(),
     },{onConflict:"user_id"});
   }catch(e){}
@@ -1018,6 +1094,12 @@ function movePanel(id,delta){
   [order[a],order[b]]=[order[b],order[a]];
   queueDashboardPrefSave(); applyDashboardPrefs(); renderAdmin();
 }
+function setPanelPage(id,page){
+  if(!PAGE_ORDER.includes(page)) return;
+  if(page===(TAB_OF[id]||"dashboard")) delete DASH_PREF.tabAssign[id]; else DASH_PREF.tabAssign[id]=page;
+  queueDashboardPrefSave(); applyDashboardPrefs(); renderAdmin();
+  if(page===DASH_PREF.activeTab) redrawAll();   // chart needs a real size on its new page
+}
 function applyDashboardPrefs(){
   const host=$("dashboardPanels"); if(!host) return;
   DASH_PREF.order.forEach(id=>{
@@ -1025,26 +1107,26 @@ function applyDashboardPrefs(){
   });
   host.querySelectorAll(".panel-node").forEach(node=>{
     const id=node.dataset.panelId, state=panelState(id);
-    node.classList.toggle("tab-off", TAB_OF[id]!==DASH_PREF.activeTab);
+    node.classList.toggle("tab-off", tabOf(id)!==DASH_PREF.activeTab);
     node.classList.toggle("pref-hidden",state==="hidden");
     node.classList.toggle("is-collapsed",state==="collapsed");
-    let button=node.querySelector(".panel-restore");
-    if(state==="collapsed"){
-      if(!button){
-        button=document.createElement("button"); button.type="button"; button.className="btn panel-restore";
-        button.textContent="Expand"; button.onclick=()=>setPanelState(id,"expanded");
-        const target=node.tagName==="DIV"&&node.classList.contains("kpis")?node:node.querySelector("h2");
-        target?.appendChild(button);
-      }
-    }else if(button) button.remove();
+    // Per-panel collapse toggle in the header — no admin needed.
+    const h2=node.querySelector("h2");
+    if(h2){
+      let t=h2.querySelector(".panel-toggle");
+      if(!t){ t=document.createElement("button"); t.type="button"; t.className="panel-toggle";
+        t.title="Collapse / expand panel";
+        t.onclick=()=>setPanelState(id, panelState(id)==="collapsed"?"expanded":"collapsed");
+        h2.appendChild(t); }
+      t.textContent = state==="collapsed" ? "▸" : "▾";
+    }
   });
 }
 // Redraw every panel's chart/content so charts in a newly-visible tab size correctly
 // (Chart.js sizes to 0 inside a display:none container; we redraw on tab switch).
 function redrawAll(){
-  renderWalletCards(); renderUpcoming(); renderStitchCards();
   renderRecurring(); renderForecast(); renderChequing(); renderIncome(); renderGoals();
-  render();  // draws doughnut/monthly/weekly/merchants + calendar/insights/balance/budgets/table + applyDashboardPrefs
+  render();  // draws charts + wallet/upcoming/heatmap/callout extras + applyDashboardPrefs
 }
 function showTab(name){
   if(!PAGE_ORDER.includes(name)) name="dashboard";
@@ -1066,7 +1148,10 @@ function renderAdmin(){
     return `<div class="admin-panel-row" draggable="true" data-panel="${id}">
       <button class="btn admin-icon drag-handle" type="button" title="Drag ${esc(title)}" aria-label="Drag ${esc(title)}">::</button>
       <span class="admin-panel-name">${esc(title)}</span>
-      <select class="admin-state" aria-label="Display ${esc(title)}">
+      <select class="admin-state admin-page" aria-label="Page for ${esc(title)}">
+        ${PAGE_ORDER.map(p=>`<option value="${p}" ${tabOf(id)===p?'selected':''}>${esc(PAGE_LABEL[p])}</option>`).join("")}
+      </select>
+      <select class="admin-state admin-display" aria-label="Display ${esc(title)}">
         ${["expanded","collapsed","hidden"].map(s=>`<option value="${s}" ${panelState(id)===s?'selected':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}
       </select>
       <button class="btn admin-icon" type="button" data-up title="Move up" aria-label="Move ${esc(title)} up" ${i===0?'disabled':''}>↑</button>
@@ -1075,7 +1160,8 @@ function renderAdmin(){
   }).join("");
   list.querySelectorAll(".admin-panel-row").forEach(row=>{
     const id=row.dataset.panel;
-    row.querySelector("select").onchange=e=>setPanelState(id,e.target.value);
+    row.querySelector(".admin-display").onchange=e=>setPanelState(id,e.target.value);
+    row.querySelector(".admin-page").onchange=e=>setPanelPage(id,e.target.value);
     row.querySelector("[data-up]").onclick=()=>movePanel(id,-1);
     row.querySelector("[data-down]").onclick=()=>movePanel(id,1);
     row.ondragstart=e=>{ row.classList.add("dragging"); e.dataTransfer.setData("text/plain",id); };
@@ -1142,12 +1228,14 @@ const ACCOUNT_COLORS={ "Scotiabank Visa":"#ff6b6b", "Tangerine Mastercard":"#ff9
   "Amex":"#22b8cf", "BMO Mastercard":"#4dabf7" };
 const SHORT_ACCT={ "Scotiabank Visa":"Scotiabank", "Tangerine Mastercard":"Tangerine",
   "Amex":"Amex", "BMO Mastercard":"BMO" };
+const ACCOUNT_NETWORK={ "Scotiabank Visa":"VISA", "Tangerine Mastercard":"Mastercard",
+  "Amex":"AMEX", "BMO Mastercard":"Mastercard" };
 const acctShort = a => SHORT_ACCT[a] || a;
 let ACCOUNTS=[];
 
 // rows matching the date window + all active selections except the `exclude` dimension
 function getFiltered(exclude){
-  const f=$("from").value, t=$("to").value;
+  const f=dayFrom(), t=dayTo();
   return DATA.filter(r=>{
     if(r.date<f||r.date>t) return false;
     if(exclude!=="accounts" && FILT.accounts.size && !FILT.accounts.has(r.account)) return false;
@@ -1211,25 +1299,25 @@ function buildPresets(){
   const box = $("presets"); box.innerHTML="";
   const mkBtn = (label, from, to, active) => {
     const b=document.createElement("button"); b.className="chip"+(active?" active":""); b.textContent=label;
-    b.onclick=()=>{ $("from").value=from; $("to").value=to; setPreset(b); render(); };
+    b.onclick=()=>{ $("from").value=from; $("to").value=to; setPreset(b); render();
+      $("presets").classList.add("collapsed"); $("presetToggle").textContent=label+" ▾"; };
     box.appendChild(b);
   };
   mkBtn("All", MIN, MAX, true);
   months.forEach(m=>{
     const [y,mm]=m.split("-").map(Number);
-    const from=`${m}-01`;
-    const to=new Date(y,mm,0).toISOString().slice(0,10);
-    mkBtn(MONTH_LABELS[mm-1]+" "+y, from < MIN ? MIN : from, to > MAX ? MAX : to, false);
+    mkBtn(MONTH_LABELS[mm-1]+" "+y, m, m, false);   // month picker values "YYYY-MM"
   });
+}
+function togglePresets(){
+  const p=$("presets"); const collapsed=p.classList.toggle("collapsed");
+  if(!collapsed) $("presetToggle").textContent="Hide months ▴";
+  else if($("presetToggle").textContent.startsWith("Hide")) $("presetToggle").textContent="Jump to month ▾";
 }
 
 function render(){
   const rows = filtered();                         // all filters → detail visuals
-  const f=$("from").value, t=$("to").value;
-  const fnote = anyFilter() ? " · filtered" : "";
-  const accts=[...new Set(DATA.map(r=>r.account))];
-  const acctLabel = accts.length>1 ? `${accts.length} cards` : (accts[0]||"Cards");
-  $("subtitle").textContent = `${acctLabel} · ${f} → ${t} · ${rows.length} transactions${fnote}`;
+  const f=dayFrom(), t=dayTo();
 
   renderChips();
   renderAccounts();
@@ -1267,6 +1355,21 @@ function render(){
       tr.innerHTML=`<span class="material-symbols-outlined" style="font-size:18px">${up?"trending_up":"trending_down"}</span> ${up?"+":""}${pct.toFixed(1)}% vs previous period`;
     } else { tr.className="hero-trend"; tr.textContent="No prior period to compare"; }
   }
+
+  // ---- Hero micro-stats: last month + last 7 days (absolute recent windows) ----
+  if($("heroMonth")){
+    const maxD = DATA.reduce((m,r)=>r.date>m?r.date:m, "0000-00-00");
+    const lastMo = maxD.slice(0,7); const [my,mm]=lastMo.split("-");
+    const moTot = DATA.filter(r=>r.date.slice(0,7)===lastMo).reduce((a,r)=>a+r.amount,0);
+    $("heroMonth").textContent=fmt0(moTot); $("heroMonthSub").textContent=(MONTH_LABELS[+mm-1]||"")+" "+my;
+    const end=parseISO(maxD), s=new Date(end.getTime()-6*86400000).toISOString().slice(0,10);
+    const wkTot=DATA.filter(r=>r.date>=s && r.date<=maxD).reduce((a,r)=>a+r.amount,0);
+    $("heroWeek").textContent=fmt0(wkTot);
+    $("heroWeekSub").textContent="to "+end.toLocaleDateString("en-CA",{month:"short",day:"numeric"});
+  }
+
+  // ---- Stitch-style page extras (reflect current filters) ----
+  renderWalletCards(); renderUpcoming(); renderStitchCards(); renderInsightsExtras(); renderBudgetExtras();
 
   // ---- Doughnut (category dimension): show all cats, highlight selected ----
   const dCat={}; getFiltered("cats").forEach(r=>dCat[r.category]=(dCat[r.category]||0)+r.amount);
@@ -1552,6 +1655,11 @@ function allSubscriptions(){
 }
 
 // ---- Stitch-style page extras (reuse existing data) ----
+function latestStatement(account){
+  // Statements are Scotiabank-only; attach them to the Scotiabank card.
+  if(account!=="Scotiabank Visa" || !STATEMENTS.length) return null;
+  return [...STATEMENTS].sort((a,b)=>(a.date<b.date?1:-1))[0];
+}
 function renderWalletCards(){
   const strip=$("walletStrip"); if(!strip) return;
   const rows=filtered();                                  // respect date range + active filters
@@ -1559,23 +1667,94 @@ function renderWalletCards(){
   rows.forEach(r=>{ (byAcct[r.account]=byAcct[r.account]||{total:0,n:0}); byAcct[r.account].total+=r.amount; byAcct[r.account].n++; });
   const accts=Object.keys(byAcct).sort((a,b)=>byAcct[b].total-byAcct[a].total);
   const grad=c=>`linear-gradient(135deg, ${c}, ${c}bb 42%, #16233a)`;
+  const dueFmt=iso=>{ try{ return parseISO(iso).toLocaleDateString("en-CA",{month:"short",day:"numeric"}); }catch(e){ return iso; } };
   const cards=accts.map(a=>{
     const c=ACCOUNT_COLORS[a]||"#7c5cff";
+    const st=latestStatement(a);
+    const net=ACCOUNT_NETWORK[a]||"CARD";
+    // balance owed (statement) when we have it, else spend in the current view
+    const headAmt = st ? st.balance : byAcct[a].total;
+    const headLbl = st ? "balance owed" : "spent";
+    let extra = `<div class="wc-line"><span>${byAcct[a].n} transactions</span><span>${headLbl}</span></div>`;
+    if(st && st.limit){
+      const util=Math.min(100, st.balance/st.limit*100);
+      extra = `<div class="wc-util"><i style="width:${util.toFixed(0)}%"></i></div>
+        <div class="wc-line"><span>${fmt0(st.balance)} / ${fmt0(st.limit)}</span><span>${st.due?("due "+dueFmt(st.due)):(util.toFixed(0)+"%")}</span></div>`;
+    }
     return `<div class="wallet-card" style="background:${grad(c)}">
-      <div class="wc-top"><div><div class="wc-name">${esc(acctShort(a))}</div><div class="wc-kind">Credit card</div></div><div class="wc-chip"></div></div>
-      <div class="wc-amt">${fmt(byAcct[a].total)}</div>
-      <div class="wc-meta"><span>${byAcct[a].n} transactions</span><span>spent</span></div>
+      <div class="wc-top"><div><div class="wc-net">${net}</div><div class="wc-name">${esc(acctShort(a))}</div></div><div class="wc-chip"></div></div>
+      <div><div class="wc-amt">${fmt(headAmt)}</div><div class="wc-digits">•••• •••• •••• ${(1000+ (a.length*137)%9000)}</div></div>
+      ${extra}
     </div>`;
   });
   if(CHEQUING && CHEQUING.length){
     const bal=CHEQUING[CHEQUING.length-1].balance;
     cards.unshift(`<div class="wallet-card" style="background:linear-gradient(135deg,#4edea3,#2fb98abb 45%,#0d3b2e)">
-      <div class="wc-top"><div><div class="wc-name">Tangerine Chequing</div><div class="wc-kind">Balance</div></div><div class="wc-chip"></div></div>
-      <div class="wc-amt">${fmt(bal)}</div>
-      <div class="wc-meta"><span>${CHEQUING.length} transactions</span><span>current</span></div>
+      <div class="wc-top"><div><div class="wc-net">TANGERINE</div><div class="wc-name">Chequing</div></div><div class="wc-chip"></div></div>
+      <div><div class="wc-amt">${fmt(bal)}</div><div class="wc-digits">•••• •••• •••• 0000</div></div>
+      <div class="wc-line"><span>${CHEQUING.length} transactions</span><span>current balance</span></div>
     </div>`);
   }
   strip.innerHTML=cards.join("");
+}
+
+function renderInsightsExtras(){
+  const rows=filtered();
+  // Fun fact — a playful, data-driven line
+  const ft=$("funText");
+  if(ft){
+    if(!rows.length){ ft.textContent="No spending in view yet."; }
+    else{
+      const total=rows.reduce((a,r)=>a+r.amount,0);
+      const byMer={}; rows.forEach(r=>byMer[r.merchant]=(byMer[r.merchant]||0)+r.amount);
+      const topMer=Object.entries(byMer).sort((a,b)=>b[1]-a[1])[0];
+      const coffee=rows.filter(r=>/coffee|tim horton|starbucks|cafe|café/i.test(r.merchant)).reduce((a,r)=>a+r.amount,0);
+      const flights=(total/900); // rough "flights to anywhere" gag at ~$900/flight
+      let msg;
+      if(coffee>50) msg=`Your café &amp; coffee runs add up to <b>${fmt(coffee)}</b> — that's a lot of caffeine ☕.`;
+      else if(topMer) msg=`You've spent the most at <b>${esc(topMer[0])}</b> (${fmt(topMer[1])}). Loyalty has a price!`;
+      else msg=`You've spent <b>${fmt(total)}</b> in this view.`;
+      msg += ` At ~$900 a ticket, this view's spend could've bought <b>${flights.toFixed(1)}</b> flights ✈️.`;
+      ft.innerHTML=msg;
+    }
+  }
+  // Merchant heatmap — top merchants by spend, colored by intensity, click to filter
+  const box=$("merchHeat"); if(!box) return;
+  const agg={}; rows.forEach(r=>{ (agg[r.merchant]=agg[r.merchant]||{amt:0,n:0}); agg[r.merchant].amt+=r.amount; agg[r.merchant].n++; });
+  const top=Object.entries(agg).sort((a,b)=>b[1].amt-a[1].amt).slice(0,16);
+  if(!top.length){ box.innerHTML='<div class="empty-note">No merchants in view.</div>'; return; }
+  const max=top[0][1].amt;
+  box.innerHTML=top.map(([m,v])=>{
+    const t=v.amt/max; const bg=`rgba(139,92,246,${(0.18+t*0.62).toFixed(2)})`;
+    const on=FILT.merchants.has(m);
+    return `<div class="mh-cell" data-mer="${esc(m).replace(/"/g,'&quot;')}" style="background:${bg};${on?'outline:2px solid #fff;':''}">
+      <div class="mh-name">${esc(m)}</div><div class="mh-amt">${fmt0(v.amt)}</div><div class="mh-visits">${v.n} visit${v.n>1?'s':''}</div></div>`;
+  }).join("");
+  box.querySelectorAll(".mh-cell").forEach(c=>c.onclick=()=>toggle("merchants", c.dataset.mer));
+}
+
+function renderBudgetExtras(){
+  const box=$("bgCallouts"); if(!box) return;
+  const cards=[];
+  // Savings milestone from goals
+  const done=GOALS.filter(g=>g.target>0 && g.saved>=g.target).length;
+  const totalSaved=GOALS.reduce((a,g)=>a+(+g.saved||0),0);
+  const totalTarget=GOALS.reduce((a,g)=>a+(+g.target||0),0);
+  if(GOALS.length){
+    const pct=totalTarget>0?Math.min(100,totalSaved/totalTarget*100):0;
+    cards.push(`<div class="scard mint"><div class="sc-ic"><span class="material-symbols-outlined">emoji_events</span></div>
+      <div><h3>Savings milestone</h3><p>You've saved <b>${fmt0(totalSaved)}</b> toward ${fmt0(totalTarget)} across ${GOALS.length} goal${GOALS.length>1?'s':''} — <b>${pct.toFixed(0)}%</b> of the way${done?` · ${done} reached 🎉`:''}.</p></div></div>`);
+  }
+  // Projection from income vs typical spend
+  const net=(typeof monthlyNet==="function")?monthlyNet():0;
+  if(net>0){
+    cards.push(`<div class="scard gold"><div class="sc-ic"><span class="material-symbols-outlined">trending_up</span></div>
+      <div><h3>Future projection</h3><p>At your current pace you keep about <b>${fmt0(net)}/mo</b> — roughly <b>${fmt0(net*12)}</b> over a year to put toward goals.</p></div></div>`);
+  } else {
+    cards.push(`<div class="scard"><div class="sc-ic"><span class="material-symbols-outlined">savings</span></div>
+      <div><h3>Set your income</h3><p>Add your monthly take-home in the Income &amp; cash flow panel to see savings projections here.</p></div></div>`);
+  }
+  box.innerHTML=cards.join("");
 }
 
 function renderUpcoming(){
@@ -1775,7 +1954,7 @@ function renderCalendar(rows){
   const max=Math.max(1,...Object.values(byDay));
   const colorFor=v=>CAL_COLORS[Math.min(CAL_COLORS.length-1, Math.floor((v/max)*CAL_COLORS.length))];
   ["#23283a",...CAL_COLORS].forEach((c,i)=>{ const el=$("lg"+i); if(el) el.style.background=c; });
-  const f=$("from").value, t=$("to").value;
+  const f=dayFrom(), t=dayTo();
   const start=parseISO(f), end=parseISO(t);
   const months=[]; let d=new Date(start.getFullYear(),start.getMonth(),1);
   while(d<=end){ months.push(new Date(d)); d=new Date(d.getFullYear(),d.getMonth()+1,1); }
@@ -1798,7 +1977,7 @@ function renderCalendar(rows){
   }).join("");
   cont.querySelectorAll(".cal-cell").forEach(c=>{
     c.onclick=()=>{ const iso=c.dataset.date;
-      if(iso>=$("from").value && iso<=$("to").value) toggle("days", iso); };
+      if(iso>=dayFrom() && iso<=dayTo()) toggle("days", iso); };
     c.onkeydown=e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); c.click(); } };
   });
 }
@@ -1839,7 +2018,8 @@ function applyData(){
 }
 
 // one-time wiring
-$("from").onchange=$("to").onchange=()=>{ setPreset(null); render(); };
+$("from").onchange=$("to").onchange=()=>{ setPreset(null); $("presetToggle").textContent="Jump to month ▾"; render(); };
+$("presetToggle").onclick=togglePresets;
 $("uploadBtn").onclick=()=>$("uploadInput").click();
 $("uploadInput").onchange=()=>{ uploadFiles([...$("uploadInput").files]); $("uploadInput").value=""; };
 
@@ -2191,7 +2371,7 @@ async function supaLoad(){
     supaAll("exp_transactions","date,merchant,raw,field,amount,category,account,account_type","date"),
     supaAll("exp_chequing","date,descr,amount,kind,balance,internal,dep_type,is_income,account","date"),
     supaAll("exp_payments","date,amount,account","date"),
-    supaAll("exp_statements","source,date,label,purchases,payments,interest,balance","date"),
+    supaAll("exp_statements","source,date,label,purchases,payments,interest,balance,limit:credit_limit,available:credit_available,due:due_date","date"),
   ]);
   DATA=tx;
   CHEQUING=chq.map(r=>({...r, desc:r.descr}));
