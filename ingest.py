@@ -352,12 +352,18 @@ def parse_pdf(path, rules=None, year=None):
         payments = _money(text, r"Payments/credits\s*-?\s*\$?([\d,]+\.\d{2})")
         interest = _money(text, r"Interest\s*\+?\s*\$?([\d,]+\.\d{2})")
         previous = _money(text, r"Previous balance,[^$]*\$([\d,]+\.\d{2})")
+        limit = _money(text, r"Credit limit\s*\$?([\d,]+\.\d{2})")
+        available = _money(text, r"Available credit\s*\$?([\d,]+\.\d{2})")
+        due_m = re.search(r"Payment\s+Due Date\s+([A-Z][a-z]{2})\s+(\d{1,2}),\s+(\d{4})", text)
+        due = date(int(due_m.group(3)), MONTHS[due_m.group(1)], int(due_m.group(2))).isoformat() \
+            if due_m else None
         stmt = {
             "date": date(yr, MONTHS[mon], day).isoformat(),
             "label": f"{mon} {yr}", "source": fname,
             "purchases": round(purchases, 2), "payments": round(payments, 2),
             "interest": round(interest, 2),
             "balance": round(previous + purchases - payments + interest, 2),
+            "limit": round(limit, 2), "available": round(available, 2), "due": due,
         }
     return txns, stmt
 

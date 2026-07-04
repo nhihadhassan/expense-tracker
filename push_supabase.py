@@ -67,7 +67,9 @@ def main():
 
     stmts = [{"source": s["source"], "date": s["date"], "label": s["label"],
               "purchases": s["purchases"], "payments": s["payments"],
-              "interest": s["interest"], "balance": s["balance"]}
+              "interest": s["interest"], "balance": s["balance"],
+              "credit_limit": s.get("limit"), "credit_available": s.get("available"),
+              "due_date": s.get("due")}
              for s in data["statements"]]
 
     rule_rows = [{"ord": i, "keyword": kw, "display": disp, "category": cat}
