@@ -88,7 +88,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Expense Tracker</title>
+<title>Nhihad's Expense Tracker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%237c5cff'/%3E%3Crect%20x='13'%20y='34'%20width='8'%20height='16'%20rx='2'%20fill='%23fff'/%3E%3Crect%20x='28'%20y='23'%20width='8'%20height='27'%20rx='2'%20fill='%23fff'/%3E%3Crect%20x='43'%20y='14'%20width='8'%20height='36'%20rx='2'%20fill='%23a98bff'/%3E%3Ccircle%20cx='47'%20cy='13'%20r='4.5'%20fill='%2351cf66'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -427,7 +427,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     #accountchips{grid-template-columns:1fr}
   }
 
-  /* ===================== FinGlow re-theme ===================== */
+  /* ===================== Nhihad theme ===================== */
   h1,h2,.kpi .value,.recur-kpi .value,.hero-balance,.admin-head h2,.sb-brand{
     font-family:"Montserrat","Inter",sans-serif; letter-spacing:-.012em;
   }
@@ -514,7 +514,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <div id="authgate">
   <div class="auth-box">
     <div class="auth-ic">💸</div>
-    <h1>Expense Tracker</h1>
+    <h1>Nhihad's Expense Tracker</h1>
     <p class="auth-sub" id="authMsg">Sign in to view your finances. We'll email you a secure magic link — no password.</p>
     <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
     <button class="btn primary" id="authBtn" style="width:100%;justify-content:center;padding:12px">Email me a magic link</button>
@@ -527,7 +527,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="dz-s">They'll be parsed, deduped, and added instantly.</div>
 </div></div>
 <aside id="sidebar">
-  <div class="sb-brand"><span class="sb-logo">◈</span> FinGlow</div>
+  <div class="sb-brand"><span class="sb-logo">◈</span> Nhihad's Expense Tracker</div>
   <nav class="sb-nav">
     <a class="active" data-scroll="top"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
     <a data-scroll="insightsCard"><span class="material-symbols-outlined">analytics</span> Insights</a>
@@ -543,7 +543,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <div class="wrap">
   <header class="header-row">
     <div>
-      <h1>Expense Tracker</h1>
+      <h1>Nhihad's Expense Tracker</h1>
       <div class="sub" id="subtitle">Scotiabank Visa · loading…</div>
     </div>
     <div class="header-actions">
@@ -1654,7 +1654,7 @@ $("from").onchange=$("to").onchange=()=>{ setPreset(null); render(); };
 $("uploadBtn").onclick=()=>$("uploadInput").click();
 $("uploadInput").onchange=()=>{ uploadFiles([...$("uploadInput").files]); $("uploadInput").value=""; };
 
-// FinGlow shell wiring: sidebar nav + hero actions
+// Shell wiring: sidebar nav + hero actions
 (function(){
   const scrollTo=(id)=>{ const el = (id==="top") ? document.body : $(id);
     if(el && el.scrollIntoView) el.scrollIntoView({behavior:"smooth", block:"start"}); };
