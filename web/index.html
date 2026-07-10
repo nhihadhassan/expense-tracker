@@ -281,6 +281,25 @@
   .goal-nums b{color:var(--text)} .goal-nums input{width:78px}
   .goal-input{background:var(--panel-2); border:1px solid var(--line); color:var(--text);
     border-radius:8px; padding:5px 8px; font-size:12.5px; text-align:right}
+  /* Treasury analytics */
+  .analytics-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:0 0 16px}
+  .analytics-kpi{background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:13px 14px; min-width:0}
+  .analytics-kpi .label{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.5px}
+  .analytics-kpi .value{font-size:20px; font-weight:700; margin-top:5px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere}
+  .analytics-kpi .meta{color:var(--muted); font-size:11.5px; margin-top:3px; line-height:1.35}
+  .analytics-kpi.good .value{color:var(--success)}
+  .analytics-kpi.bad .value{color:var(--danger)}
+  .analytics-table{font-size:12.5px}
+  .analytics-table th,.analytics-table td{padding:9px 10px}
+  .analytics-table th{position:static}
+  .analytics-table .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .analytics-table .good{color:var(--success)} .analytics-table .bad{color:var(--danger)}
+  .trend-badge{display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 8px; font-size:11.5px; font-weight:650; white-space:nowrap}
+  .trend-badge.up{color:var(--danger); background:rgba(255,157,148,.10); border:1px solid rgba(255,157,148,.22)}
+  .trend-badge.down{color:var(--success); background:rgba(78,222,163,.10); border:1px solid rgba(78,222,163,.22)}
+  .trend-badge.flat{color:var(--muted); background:rgba(255,255,255,.045); border:1px solid var(--line)}
+  .projection-note{margin:0 0 14px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; color:var(--muted); font-size:12.5px; line-height:1.45; background:rgba(255,255,255,.025)}
+  @media(max-width:860px){.analytics-kpis{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:860px){.goal{grid-template-columns:1fr} .goal-nums{text-align:left}}
 
   /* drag & drop upload overlay */
@@ -334,6 +353,10 @@
     .preview-kpis{grid-template-columns:1fr 1fr}
     .card{padding:15px}
     .card.full{grid-column:auto}
+    .analytics-kpis{grid-template-columns:1fr 1fr; gap:9px}
+    .analytics-kpi{padding:11px 12px}
+    .analytics-kpi .value{font-size:18px}
+    .analytics-table{min-width:620px}
     .chartbox{height:270px}
     .chartbox.tall{height:310px}
     th,td{padding:10px 9px}
@@ -575,6 +598,7 @@
     <a class="active" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
     <a data-page="accounts"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</a>
     <a data-page="insights"><span class="material-symbols-outlined">analytics</span> Insights</a>
+    <a data-page="analytics"><span class="material-symbols-outlined">query_stats</span> Analytics</a>
     <a data-page="budgets"><span class="material-symbols-outlined">savings</span> Budgets &amp; Goals</a>
   </nav>
   <div class="sb-foot">
@@ -605,6 +629,7 @@
     <button class="ptab active" data-page="dashboard" type="button"><span class="material-symbols-outlined">dashboard</span> Dashboard</button>
     <button class="ptab" data-page="accounts" type="button"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</button>
     <button class="ptab" data-page="insights" type="button"><span class="material-symbols-outlined">analytics</span> Insights</button>
+    <button class="ptab" data-page="analytics" type="button"><span class="material-symbols-outlined">query_stats</span> Analytics</button>
     <button class="ptab" data-page="budgets" type="button"><span class="material-symbols-outlined">savings</span> Budgets &amp; Goals</button>
   </nav>
   <div class="hero-card" data-tab="dashboard">
@@ -784,6 +809,36 @@
       <div class="chartbox tall"><canvas id="forecast"></canvas></div>
     </div>
 
+    <div class="card full panel-node" id="varianceCard" data-panel-id="variance" data-panel-title="Monthly variance">
+      <h2>Monthly variance</h2>
+      <p class="hint">Latest selected month by category, normalized to a full month when the data is partial, against the trailing three-month average.</p>
+      <div class="analytics-kpis" id="varianceKpis"></div>
+      <div class="chartbox tall"><canvas id="variance"></canvas></div>
+      <div class="tablewrap" style="margin-top:16px"><table class="analytics-table" id="varianceTable">
+        <thead><tr><th>Category</th><th class="num">Observed</th><th class="num">Normalized</th><th class="num">3-mo avg</th><th class="num">Variance</th><th class="num">Move</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+
+    <div class="card full panel-node" id="trendsCard" data-panel-id="trends" data-panel-title="Category trends">
+      <h2>Category trends</h2>
+      <p class="hint">Top categories over time. Trend badges are fitted dollars per month over the visible range, so they are less sensitive to one noisy month.</p>
+      <div class="chartbox tall"><canvas id="categoryTrends"></canvas></div>
+      <div class="tablewrap" style="margin-top:16px"><table class="analytics-table" id="trendTable">
+        <thead><tr><th>Category</th><th>Trend</th><th class="num">Latest</th><th class="num">3-mo avg</th><th class="num">Change</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+
+    <div class="card full panel-node" id="projectionCard" data-panel-id="projection" data-panel-title="Cash flow projection">
+      <h2>Cash flow projection</h2>
+      <p class="hint">Six months forward from the latest loaded chequing balance. The shaded range is a historical-spend uncertainty band, not a promise.</p>
+      <div class="analytics-kpis" id="projectionKpis"></div>
+      <p class="projection-note" id="projectionNote"></p>
+      <div class="chartbox tall"><canvas id="projection"></canvas></div>
+      <div class="tablewrap" style="margin-top:16px"><table class="analytics-table" id="projectionTable">
+        <thead><tr><th>Month</th><th class="num">Net cash flow</th><th class="num">Projected chequing</th><th class="num">Range</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+
     <div class="card full panel-node" id="rulesCard" data-panel-id="rules" data-panel-title="Categorization rules" style="display:none">
       <h2>Categorization rules <span class="muted" id="rulecount"></span></h2>
       <p class="hint">These keyword rules turn raw statement text into tidy merchant names + categories. Edit a category to reclassify every matching transaction instantly. New rules take priority (matched first).</p>
@@ -928,14 +983,16 @@ const charts = {};
 const PREF_KEY="expense-dashboard-preferences-v1";
 const PREF_VERSION=1;
 const DEFAULT_PANEL_ORDER=["summary","insights","monthly","category","weekly","heatmap","budgets",
-  "chequing","income","goals","merchants","payments","recurring","forecast","rules","transactions"];
+  "chequing","income","goals","merchants","payments","recurring","forecast",
+  "variance","trends","projection","rules","transactions"];
 // ---- Tabbed pages: each panel belongs to exactly one page ----
-const PAGE_ORDER=["dashboard","accounts","insights","budgets"];
-const PAGE_LABEL={dashboard:"Dashboard",accounts:"Accounts",insights:"Insights",budgets:"Budgets & Goals"};
+const PAGE_ORDER=["dashboard","accounts","insights","analytics","budgets"];
+const PAGE_LABEL={dashboard:"Dashboard",accounts:"Accounts",insights:"Insights",analytics:"Analytics",budgets:"Budgets & Goals"};
 const TAB_OF={
   summary:"dashboard", insights:"dashboard", monthly:"dashboard", category:"dashboard",
   chequing:"accounts", payments:"accounts", merchants:"accounts", transactions:"accounts",
   weekly:"insights", heatmap:"insights", recurring:"insights", forecast:"insights",
+  variance:"analytics", trends:"analytics", projection:"analytics",
   budgets:"budgets", goals:"budgets", income:"budgets", rules:"budgets",
 };
 let CURRENT_USER=null;
@@ -1340,6 +1397,7 @@ function render(){
   renderInsights(rows, total);
   renderBalance();          // purchases vs payments, all cards (respects account filter)
   renderBudgets(catTot, days);
+  renderAnalytics();
   renderTable(rows);
   applyDashboardPrefs();
 }
@@ -1798,6 +1856,189 @@ function renderForecast(){
       scales:{ x:{grid:{display:false}}, y:{beginAtZero:true, grid:{color:"#222633"}, ticks:{callback:v=>fmt0(v)}}},
     })});
   return projected;
+}
+
+// ---- Treasury analytics: variance, category trends, cash-flow projection ----
+function analyticsRows(allTime){
+  const f=dayFrom(), t=dayTo();
+  return DATA.filter(r=>{
+    if(!allTime && (r.date<f || r.date>t)) return false;
+    if(!allTime && FILT.months.size && !FILT.months.has(r.date.slice(0,7))) return false;
+    if(FILT.accounts.size && !FILT.accounts.has(r.account)) return false;
+    if(FILT.cats.size && !FILT.cats.has(r.category)) return false;
+    if(FILT.merchants.size && !FILT.merchants.has(r.merchant)) return false;
+    if(FILT.days.size && !FILT.days.has(r.date)) return false;
+    return true;
+  });
+}
+function monthName(ym){ const [y,m]=ym.split("-").map(Number); return `${MONTH_LABELS[m-1]} ${y}`; }
+function monthTotals(rows){
+  const out={}; rows.forEach(r=>out[r.date.slice(0,7)]=(out[r.date.slice(0,7)]||0)+r.amount); return out;
+}
+function monthCatTotals(rows){
+  const out={}; rows.forEach(r=>{ const m=r.date.slice(0,7); out[m]=out[m]||{}; out[m][r.category]=(out[m][r.category]||0)+r.amount; }); return out;
+}
+function avgLast(values){ return values.length ? values.reduce((a,b)=>a+b,0)/values.length : null; }
+function stdDev(values){
+  if(values.length<2) return 0;
+  const mean=avgLast(values); return Math.sqrt(avgLast(values.map(v=>(v-mean)**2))||0);
+}
+function signedFmt(value){ return (value>=0?"+":"-")+fmt(Math.abs(value)); }
+function signedPct(value){ return (value>=0?"+":"")+value.toFixed(0)+"%"; }
+function analyticsKpi(label,value,meta,cls=""){ return `<div class="analytics-kpi ${cls}"><div class="label">${label}</div><div class="value">${value}</div><div class="meta">${meta}</div></div>`; }
+function monthsBetween(startYM,endYM){
+  if(!startYM||!endYM||startYM>endYM) return [];
+  const [sy,sm]=startYM.split("-").map(Number), [ey,em]=endYM.split("-").map(Number), out=[];
+  let y=sy, m=sm;
+  while(y<ey || (y===ey&&m<=em)){ out.push(`${y}-${String(m).padStart(2,"0")}`); if(++m>12){m=1;y++;} }
+  return out;
+}
+function previousMonths(ym,count){
+  const [y,m]=ym.split("-").map(Number); const end=new Date(y,m-1,1); end.setMonth(end.getMonth()-1);
+  const start=new Date(end); start.setMonth(start.getMonth()-count+1);
+  return monthsBetween(`${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}`,`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,"0")}`);
+}
+function linearSlope(values){
+  if(values.length<2) return 0;
+  const meanX=(values.length-1)/2, meanY=avgLast(values)||0;
+  let numerator=0, denominator=0;
+  values.forEach((v,i)=>{ numerator+=(i-meanX)*(v-meanY); denominator+=(i-meanX)**2; });
+  return denominator ? numerator/denominator : 0;
+}
+function analyticsCoverageEnd(ym){
+  const dates=DATA.filter(r=>r.date.slice(0,7)===ym && (!FILT.accounts.size||FILT.accounts.has(r.account))).map(r=>r.date).sort();
+  return dates.length?dates[dates.length-1]:null;
+}
+function monthScale(ym,startIso,endIso){
+  const first=parseISO(`${ym}-01`), last=parseISO(`${ym}-${String(monthEnd(ym)).padStart(2,"0")}`);
+  let start=parseISO(startIso||`${ym}-01`), end=parseISO(endIso||`${ym}-${String(monthEnd(ym)).padStart(2,"0")}`);
+  if(start<first) start=first; if(end>last) end=last;
+  const coverage=analyticsCoverageEnd(ym); if(coverage){ const coverageDate=parseISO(coverage); if(end>coverageDate) end=coverageDate; }
+  const observedDays=end>=start?Math.max(1,Math.floor((end-start)/DAY)+1):0;
+  const days=monthEnd(ym);
+  return {days,observedDays,factor:observedDays?days/observedDays:1,partial:observedDays>0&&observedDays<days};
+}
+function normalizedMonthTotal(rows,ym,startIso,endIso){
+  const raw=rows.filter(r=>r.date.slice(0,7)===ym).reduce((a,r)=>a+r.amount,0);
+  return raw*monthScale(ym,startIso,endIso).factor;
+}
+function trendBadge(slope){
+  const flat=Math.abs(slope)<5, cls=flat?"flat":slope>0?"up":"down", arrow=flat?"→":slope>0?"↑":"↓";
+  return `<span class="trend-badge ${cls}">${arrow} ${flat?"Flat":fmt0(Math.abs(slope))+"/mo"}</span>`;
+}
+function renderAnalytics(){
+  const current=filtered();
+  const history=analyticsRows(true);
+  const currentCat=monthCatTotals(current), historyCat=monthCatTotals(history);
+  const currentTotals=monthTotals(current), historyTotals=monthTotals(history);
+  const rangeMonths=FILT.months.size?[...FILT.months].sort():monthsBetween(dayFrom().slice(0,7),dayTo().slice(0,7));
+  const latestMonth=rangeMonths[rangeMonths.length-1];
+  const categories=Object.keys(current.reduce((o,r)=>{o[r.category]=(o[r.category]||0)+r.amount;return o;},{}))
+    .sort((a,b)=>current.filter(r=>r.category===b).reduce((s,r)=>s+r.amount,0)-current.filter(r=>r.category===a).reduce((s,r)=>s+r.amount,0)).slice(0,10);
+
+  // Latest-month variance by category, with full-month normalization for partial data.
+  const latestScale=latestMonth?monthScale(latestMonth,dayFrom(),dayTo()):null;
+  const baselineMonths=latestMonth?previousMonths(latestMonth,3):[];
+  const varianceRows=categories.map(category=>{
+    const observed=(currentCat[latestMonth]&&currentCat[latestMonth][category])||0;
+    const normalized=observed*(latestScale?latestScale.factor:1);
+    const baseline=avgLast(baselineMonths.map(m=>((historyCat[m]&&historyCat[m][category])||0)*monthScale(m,`${m}-01`,`${m}-${String(monthEnd(m)).padStart(2,"0")}`).factor))||0;
+    const variance=normalized-baseline;
+    return {category,observed,normalized,baseline,variance,pct:baseline?variance/baseline*100:null};
+  }).sort((a,b)=>Math.abs(b.variance)-Math.abs(a.variance));
+  const totalObserved=varianceRows.reduce((s,r)=>s+r.observed,0), totalNormalized=varianceRows.reduce((s,r)=>s+r.normalized,0), totalBaseline=varianceRows.reduce((s,r)=>s+r.baseline,0), totalVariance=totalNormalized-totalBaseline;
+  const largest=varianceRows[0];
+  $("varianceKpis").innerHTML = latestMonth&&varianceRows.length ? [
+    analyticsKpi("Latest month",monthName(latestMonth),latestScale&&latestScale.partial?`${latestScale.observedDays} of ${latestScale.days} days observed`:"full month"),
+    analyticsKpi("Observed spend",fmt(totalObserved),"transactions in latest month"),
+    analyticsKpi("Normalized spend",fmt(totalNormalized),latestScale&&latestScale.partial?`×${latestScale.factor.toFixed(2)} partial-month factor`:"no proration"),
+    analyticsKpi("Total variance",signedFmt(totalVariance),totalBaseline?`${totalVariance>=0?"above":"below"} 3-mo average`:"needs history",totalVariance>0?"bad":totalVariance<0?"good":""),
+  ].join("") : analyticsKpi("Monthly variance","No spend","Choose a range with transactions");
+  $("varianceTable").querySelector("tbody").innerHTML = varianceRows.length ? varianceRows.map(r=>{
+    const cls=r.variance>0?"bad":r.variance<0?"good":"";
+    return `<tr><td><span class="tag"><span class="dot" style="background:${CAT_COLORS[r.category]||'#999'}"></span>${esc(r.category)}</span></td><td class="num">${fmt(r.observed)}</td><td class="num">${fmt(r.normalized)}</td><td class="num">${fmt(r.baseline)}</td><td class="num ${cls}">${signedFmt(r.variance)}</td><td class="num ${cls}">${r.pct==null?"n/a":signedPct(r.pct)}</td></tr>`;
+  }).join("") : '<tr><td colspan="6" class="muted">No category spend in the selected range.</td></tr>';
+  upsert("variance",{type:"bar",data:{labels:varianceRows.map(r=>r.category),datasets:[
+    {label:"Normalized latest",data:varianceRows.map(r=>r.normalized),backgroundColor:varianceRows.map(r=>CAT_COLORS[r.category]||"#a98bff"),borderRadius:5,order:2},
+    {label:"3-mo average",data:varianceRows.map(r=>r.baseline),type:"line",borderColor:"#4edea3",backgroundColor:"#4edea3",borderWidth:2.5,pointRadius:3,tension:.25,order:1},
+  ]},options:baseOpts({plugins:{legend:{display:true,position:"bottom",labels:{boxWidth:12,padding:14,usePointStyle:true}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`},backgroundColor:"#0f1117",borderColor:"#2a2f3d",borderWidth:1,padding:10}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:"#222633"},ticks:{callback:v=>fmt0(v)}}}})});
+
+  // Category trends: contiguous monthly lines with a fitted dollar-per-month slope.
+  const trendCats=categories.slice(0,6), trendMonths=rangeMonths.slice(-12), trendColors=trendCats.map(c=>CAT_COLORS[c]||"#a98bff");
+  const trendValues=(category)=>trendMonths.map(m=>normalizedMonthTotal(current.filter(r=>r.category===category),m,dayFrom(),dayTo()));
+  const trendData=trendCats.map((category,i)=>({category,values:trendValues(category),slope:linearSlope(trendValues(category))}));
+  upsert("categoryTrends",{type:"line",data:{labels:trendMonths.map(monthName),datasets:trendData.map((r,i)=>({label:r.category,data:r.values,borderColor:trendColors[i],backgroundColor:trendColors[i],borderWidth:2.5,pointRadius:2.5,pointHoverRadius:5,tension:.28,fill:false}))},options:baseOpts({plugins:{legend:{display:true,position:"bottom",labels:{boxWidth:12,padding:14,usePointStyle:true}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`},backgroundColor:"#0f1117",borderColor:"#2a2f3d",borderWidth:1,padding:10}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:"#222633"},ticks:{callback:v=>fmt0(v)}}}})});
+  const trendLatest=trendData.map(r=>{ const latest=(currentCat[latestMonth]&&currentCat[latestMonth][r.category])||0; const avg=avgLast(baselineMonths.map(m=>((historyCat[m]&&historyCat[m][r.category])||0)*monthScale(m,`${m}-01`,`${m}-${String(monthEnd(m)).padStart(2,"0")}`).factor))||0; return {...r,latest:latest*(latestScale?latestScale.factor:1),avg,change:latest*(latestScale?latestScale.factor:1)-avg}; });
+  $("trendTable").querySelector("tbody").innerHTML = trendLatest.length ? trendLatest.map(r=>{
+    const cls=r.change>0?"bad":r.change<0?"good":"";
+    return `<tr><td><span class="tag"><span class="dot" style="background:${CAT_COLORS[r.category]||'#999'}"></span>${esc(r.category)}</span></td><td>${trendBadge(r.slope)}</td><td class="num">${fmt(r.latest)}</td><td class="num">${fmt(r.avg)}</td><td class="num ${cls}">${signedFmt(r.change)}</td></tr>`;
+  }).join("") : '<tr><td colspan="5" class="muted">No category trend data in the selected range.</td></tr>';
+
+  // Cash-flow projection: actual recurring charges plus variable run rate, with a one-sigma band.
+  const historyMonths=Object.keys(historyTotals).sort();
+  if(!historyMonths.length){
+    $("projectionKpis").innerHTML=analyticsKpi("Cash-flow projection","No filtered history","Clear a category, merchant, or account filter");
+    $("projectionNote").textContent="There is no transaction history matching the current filters, so a forward cash-flow estimate cannot be fitted.";
+    $("projectionTable").querySelector("tbody").innerHTML='<tr><td colspan="4" class="muted">No filtered history for projection.</td></tr>';
+    upsert("projection",{type:"line",data:{labels:[],datasets:[]},options:baseOpts({plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}})});
+    return;
+  }
+  const projectionLatest=historyMonths[historyMonths.length-1];
+  const projectionMonths=projectionLatest?monthsBetween(historyMonths[0],projectionLatest):[];
+  const normalizedTotals=Object.fromEntries(projectionMonths.map(m=>[m,normalizedMonthTotal(history,m,`${m}-01`,`${m}-${String(monthEnd(m)).padStart(2,"0")}`)]));
+  const recurring=RECURRING.filter(r=>{
+    if(FILT.cats.size&&!FILT.cats.has(r.category)) return false;
+    if(FILT.merchants.size&&!FILT.merchants.has(r.merchant)) return false;
+    return history.some(tx=>tx.merchant===r.merchant);
+  });
+  const recurringMerchants=new Set(recurring.map(r=>r.merchant));
+  const recurringMonthly=recurring.reduce((a,r)=>a+(r.monthly||0),0);
+  const baseMonths=projectionLatest?previousMonths(projectionLatest,3):[];
+  const variableRunRate=avgLast(baseMonths.map(m=>{
+    const raw=history.filter(r=>r.date.slice(0,7)===m&&!recurringMerchants.has(r.merchant)).reduce((a,r)=>a+r.amount,0);
+    return raw*monthScale(m,`${m}-01`,`${m}-${String(monthEnd(m)).padStart(2,"0")}`).factor;
+  }))||0;
+  const projectedSpend=recurringMonthly+variableRunRate;
+  const uncertainty=stdDev(projectionMonths.slice(-6).map(m=>normalizedTotals[m]||0));
+  const spendLow=Math.max(0,projectedSpend-uncertainty), spendHigh=projectedSpend+uncertainty;
+  const income=effectiveIncome();
+  const hasBalance=CHEQUING.length>0&&Number.isFinite(+CHEQUING[CHEQUING.length-1].balance);
+  const startBalance=hasBalance?+CHEQUING[CHEQUING.length-1].balance:null;
+  const [py,pm]=projectionLatest?projectionLatest.split("-").map(Number):[new Date().getFullYear(),new Date().getMonth()+1];
+  const future=[]; for(let i=1;i<=6;i++){const d=new Date(py,pm-1+i,1);future.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);}
+  const actualMonths=projectionMonths.slice(-6), actualSpend=actualMonths.map(m=>normalizedTotals[m]||0), labels=[...actualMonths,...future].map(monthName);
+  const net=income>0?income-projectedSpend:null, netLow=income>0?income-spendHigh:null, netHigh=income>0?income-spendLow:null;
+  let balance=startBalance, lowBalance=startBalance, highBalance=startBalance;
+  const futureBalance=[], futureLow=[], futureHigh=[];
+  future.forEach(()=>{ if(net!=null){balance+=net;lowBalance+=netLow;highBalance+=netHigh;} futureBalance.push(balance);futureLow.push(lowBalance);futureHigh.push(highBalance); });
+  const balanceSeries=hasBalance?Array(actualMonths.length-1).fill(null).concat([startBalance],futureBalance):[];
+  const lowSeries=hasBalance?Array(actualMonths.length-1).fill(null).concat([startBalance],futureLow):[];
+  const highSeries=hasBalance?Array(actualMonths.length-1).fill(null).concat([startBalance],futureHigh):[];
+  $("projectionKpis").innerHTML=[
+    analyticsKpi("Projected spend / mo",fmt(projectedSpend),`±${fmt(uncertainty)} historical spread`),
+    analyticsKpi("Net cash flow / mo",net==null?"Set income":signedFmt(net),net==null?"enter take-home income":net>=0?"cash-positive run rate":"spend exceeds income",net!=null?(net>=0?"good":"bad"):""),
+    analyticsKpi("6-mo net",net==null?"Set income":signedFmt(net*6),net==null?"needs income":net>=0?"before uncertainty":"before uncertainty",net!=null?(net>=0?"good":"bad"):""),
+    analyticsKpi("Projected balance",hasBalance&&futureBalance.length?fmt(futureBalance[futureBalance.length-1]):"n/a",hasBalance?"after 6 months":"load chequing data",hasBalance&&futureBalance.length&&futureBalance[futureBalance.length-1]<0?"bad":""),
+  ].join("");
+  $("projectionNote").textContent=income>0&&hasBalance
+    ? `Starts at ${fmt(startBalance)} and uses ${fmt(income)}/mo income. The shaded balance range compounds a ±${fmt(uncertainty)}/mo historical-spend spread; recurring run rate is ${fmt(recurringMonthly)}/mo from detected transaction patterns.`
+    : income>0
+      ? `Income is available, but no chequing balance is loaded. Net cash flow is projected with a ±${fmt(uncertainty)}/mo historical-spend spread.`
+      : `Enter monthly take-home income in Budgets & Goals to turn the spend run rate into net cash flow and a projected chequing balance.`;
+  const projectionDS=[
+    {label:"Actual spend",data:[...actualSpend,...future.map(()=>null)],yAxisID:"y1",borderColor:"#22b8cf",backgroundColor:"rgba(34,184,207,.12)",borderWidth:2.5,pointRadius:2.5,tension:.28,fill:false},
+    {label:"Net cash flow",data:Array(actualMonths.length).fill(null).concat(future.map(()=>net)),yAxisID:"y1",borderColor:"#ff922b",backgroundColor:"#ff922b",borderDash:[5,4],borderWidth:2.5,pointRadius:2.5,tension:.2,spanGaps:true,fill:false},
+  ];
+  if(hasBalance){
+    projectionDS.push({label:"Balance low",data:lowSeries,yAxisID:"y",borderColor:"rgba(169,139,255,.35)",backgroundColor:"rgba(169,139,255,.14)",borderWidth:1,pointRadius:0,fill:false,spanGaps:true});
+    projectionDS.push({label:"Balance high",data:highSeries,yAxisID:"y",borderColor:"rgba(169,139,255,.35)",backgroundColor:"rgba(169,139,255,.14)",borderWidth:1,pointRadius:0,fill:"-1",spanGaps:true});
+    projectionDS.push({label:"Projected chequing",data:balanceSeries,yAxisID:"y",borderColor:"#4edea3",backgroundColor:"#4edea3",borderWidth:3,pointRadius:3,tension:.28,spanGaps:true,fill:false});
+  }
+  upsert("projection",{type:"line",data:{labels,datasets:projectionDS},options:baseOpts({plugins:{legend:{display:true,position:"bottom",labels:{boxWidth:12,padding:14,usePointStyle:true}},tooltip:{callbacks:{label:c=>c.parsed.y==null?null:` ${c.dataset.label}: ${fmt(c.parsed.y)}`},backgroundColor:"#0f1117",borderColor:"#2a2f3d",borderWidth:1,padding:10}},scales:{x:{grid:{display:false}},y:{position:"left",grid:{color:"#222633"},ticks:{callback:v=>fmt0(v)}},y1:{position:"right",grid:{drawOnChartArea:false},ticks:{callback:v=>fmt0(v)}}}})});
+  $("projectionTable").querySelector("tbody").innerHTML=future.map((m,i)=>{
+    const end=hasBalance&&futureBalance.length?futureBalance[i]:null, low=hasBalance&&futureLow.length?futureLow[i]:null, high=hasBalance&&futureHigh.length?futureHigh[i]:null;
+    return `<tr><td>${monthName(m)}</td><td class="num ${net!=null?(net>=0?"good":"bad"):""}">${net==null?"Set income":signedFmt(net)}</td><td class="num">${end==null?"n/a":fmt(end)}</td><td class="num">${low==null||high==null?"n/a":`${fmt(low)} to ${fmt(high)}`}</td></tr>`;
+  }).join("");
 }
 
 // ---- Auto-insights + anomaly detection (operates on the filtered range) ----
