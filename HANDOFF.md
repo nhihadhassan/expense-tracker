@@ -5,20 +5,20 @@
 This is a local-first personal finance dashboard for Scotiabank, Tangerine, Amex, and BMO data, with a hosted Vercel/Supabase shell.
 
 - Working branch: `main`
-- Base commit before Phase 1: `a139bf0` (`Add agent handoff notes`)
+- Latest local commit: `5877f25` (`Continue treasury roadmap phases`)
 - GitHub: <https://github.com/nhihadhassan/expense-tracker>
 - Production: <https://expense-tracker-sooty-six-38.vercel.app>
 - Last deployment status: Ready
 - The current checkout was clean before creating this handoff file.
 
-`codex/treasury-analytics` is already merged into `main` by fast-forward. The Phase 1 changes
-below are ready in the local working tree and have not been pushed or deployed yet.
+`codex/treasury-analytics` is already merged into `main` by fast-forward. This continuation is
+committed locally and is ready to publish; production deployment is tracked separately.
 
 ## What was just implemented
 
 The fifth `Analytics` page is wired into the same date, account, category, merchant, month, and day filters used by the rest of the dashboard.
 
-### Monthly variance
+### Monthly variance and budget plan
 
 Located in the `varianceCard` panel and rendered by `renderAnalytics()` in `build_dashboard.py`.
 
@@ -27,6 +27,7 @@ Located in the `varianceCard` panel and rendered by `renderAnalytics()` in `buil
 - Partial-month normalization uses the loaded data coverage date and the number of observed calendar days.
 - Compares normalized category spend with the prior three calendar months, including zero-spend months.
 - Shows signed dollar and percentage variance.
+- Compares normalized spend with the monthly budget target and shows the signed budget gap.
 
 ### Category trends
 
@@ -58,6 +59,8 @@ Located in the `projectionCard` panel.
 - `server.py`: local backend on port `8765`.
 - `db.py`: SQLite schema and sync helpers.
 - `test_recon.py`: parser and reconciliation regression checks.
+- `test_analytics.py`: deterministic fixtures for partial-month normalization, uncertainty spread,
+  and budget-gap math.
 - `HOSTING.md`: Vercel, Supabase Auth, RLS, and hosted import notes.
 
 The normal frontend workflow is:
@@ -91,6 +94,7 @@ Useful checks:
 
 ```bash
 python3 test_recon.py
+python3 test_analytics.py
 git diff --check
 npx --yes agent-browser open http://localhost:8765/#tab-analytics
 ```
@@ -124,12 +128,27 @@ empty but intentional remote state from being mistaken for a first login.
 The source of truth for this behavior is the shared template in `build_dashboard.py`; regenerate
 `web/index.html` after editing it.
 
-## Recommended next steps
+## Phase 2 — RLS-safe refresh
 
-1. Add `SUPABASE_SECRET_KEY` support to `push_supabase.py` so local statement refreshes do not require temporarily relaxing RLS.
-2. If changing the analytics formulas, add a small deterministic fixture or browser assertion for partial-month normalization and uncertainty-band values.
-3. Consider phone uploads through a Vercel Python function when Mac-based statement refresh becomes the larger annoyance.
-4. Keep the projection copy explicit that the uncertainty band is historical-spend spread, not a probabilistic guarantee.
+`push_supabase.py` accepts `SUPABASE_SECRET_KEY` from the environment. Use:
+
+```bash
+SUPABASE_SECRET_KEY=sb_secret_... python3 push_supabase.py
+```
+
+The secret is never embedded in the hosted bundle or committed files.
+
+## Phase 3 — Hosted ingestion
+
+Phone-friendly statement ingestion is already present through the authenticated Vercel Python
+functions under `api/import/`. Preview, dedupe, commit, and import history are backed by
+`exp_imports`; the parser remains Python so no EBCDIC logic is ported to Deno.
+
+## Remaining phases
+
+1. Add a real monthly net-worth snapshot table once card-balance coverage is available for every account.
+2. Add outbound budget/anomaly alerts only after an email or messaging provider and credentials are chosen.
+3. Keep the projection copy explicit that the uncertainty band is historical-spend spread, not a probabilistic guarantee.
 
 ## Important assumptions
 
@@ -137,4 +156,5 @@ The source of truth for this behavior is the shared template in `build_dashboard
 - Chequing income excludes internal transfers and peer transfers according to the existing classification logic.
 - Card transactions represent spending; payments and credits are handled separately by the existing spend-vs-payments panel.
 - Empty filtered states are valid and should remain non-throwing.
-- The production deployment still needs to be confirmed after the Phase 1 build is published.
+- GitHub and Vercel production are separate verification targets; confirm both after every future
+  change before handoff.

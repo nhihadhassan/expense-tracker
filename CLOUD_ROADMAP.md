@@ -1,12 +1,13 @@
-# Cloud / Hosted Features — Implementation Plans (for later)
+# Cloud / Hosted Features — Remaining Plans
 
-These features can't be built in the current **local, zero-install, single-user** setup —
+Some remaining features can't be built in the current **local, zero-install, single-user** setup —
 they need external services, API keys, a hosted server, and/or credentials. Each plan below
 is detailed enough to execute when you decide to provide those. They're intentionally
-**not built** so the app stays local and private by default.
+The hosted work already completed is documented in `HANDOFF.md` and `HOSTING.md`.
 
-The good news: the architecture is ready. `ingest.py` (parsing + analytics), `db.py` (SQLite),
-and `server.py` (stdlib HTTP + JSON API) cleanly separate concerns, so these are additive.
+The dashboard now has Supabase Auth, multi-device personal-state sync, authenticated hosted
+statement ingestion, RLS-safe local refresh support, and an installable PWA shell. The remaining
+items below require external providers, new production tables, or additional credentials.
 
 ---
 

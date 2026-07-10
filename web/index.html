@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nhihad's Expense Tracker</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07182c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/favicon.svg">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,6 +29,23 @@
     --glass:rgba(28,43,60,.45);
     --ease-out:cubic-bezier(.22,1,.36,1);
   }
+  html[data-theme="light"]{
+    color-scheme:light;
+    --bg:#f4f7fb; --panel:#ffffff; --panel-2:#edf2f8;
+    --line:rgba(20,35,55,.12); --line-strong:rgba(20,35,55,.22);
+    --text:#172033; --muted:#5d6b7e; --soft:#718096;
+    --glass:rgba(255,255,255,.72);
+  }
+  html[data-theme="light"] body{
+    background:
+      radial-gradient(1100px 620px at 12% -6%, rgba(139,92,246,.12), transparent 46%),
+      radial-gradient(900px 560px at 96% 6%, rgba(78,222,163,.12), transparent 44%),
+      linear-gradient(180deg,#eef2ff,var(--bg) 340px);
+  }
+  html[data-theme="light"] .field select{color-scheme:light}
+  html[data-theme="light"] .scard h3,
+  html[data-theme="light"] .ring .ring-pct,
+  html[data-theme="light"] .ring-info .ring-name{color:var(--text)}
   *{box-sizing:border-box}
   html,body{max-width:100%; overflow-x:hidden}
   input,select,button{font:inherit}
@@ -595,11 +618,11 @@
 <aside id="sidebar">
   <div class="sb-brand"><span class="sb-logo">◈</span> Nhihad's Expense Tracker</div>
   <nav class="sb-nav">
-    <a class="active" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
-    <a data-page="accounts"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</a>
-    <a data-page="insights"><span class="material-symbols-outlined">analytics</span> Insights</a>
-    <a data-page="analytics"><span class="material-symbols-outlined">query_stats</span> Analytics</a>
-    <a data-page="budgets"><span class="material-symbols-outlined">savings</span> Budgets &amp; Goals</a>
+    <a class="active" href="#tab-dashboard" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+    <a href="#tab-accounts" data-page="accounts"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</a>
+    <a href="#tab-insights" data-page="insights"><span class="material-symbols-outlined">analytics</span> Insights</a>
+    <a href="#tab-analytics" data-page="analytics"><span class="material-symbols-outlined">query_stats</span> Analytics</a>
+    <a href="#tab-budgets" data-page="budgets"><span class="material-symbols-outlined">savings</span> Budgets &amp; Goals</a>
   </nav>
   <div class="sb-foot">
     <a id="sbAdmin"><span class="material-symbols-outlined">settings</span> Admin</a>
@@ -620,6 +643,7 @@
       </span>
       <button class="btn view-nav active" id="dashboardNav" type="button">Dashboard</button>
       <button class="btn view-nav" id="adminNav" type="button">Admin</button>
+      <button class="btn" id="themeToggle" type="button" aria-pressed="false">Light theme</button>
       <button class="btn primary" id="export">Export CSV</button>
     </div>
   </header>
@@ -815,7 +839,7 @@
       <div class="analytics-kpis" id="varianceKpis"></div>
       <div class="chartbox tall"><canvas id="variance"></canvas></div>
       <div class="tablewrap" style="margin-top:16px"><table class="analytics-table" id="varianceTable">
-        <thead><tr><th>Category</th><th class="num">Observed</th><th class="num">Normalized</th><th class="num">3-mo avg</th><th class="num">Variance</th><th class="num">Move</th></tr></thead><tbody></tbody>
+        <thead><tr><th>Category</th><th class="num">Observed</th><th class="num">Normalized</th><th class="num">Plan</th><th class="num">vs plan</th><th class="num">3-mo avg</th><th class="num">Variance</th><th class="num">Move</th></tr></thead><tbody></tbody>
       </table></div>
     </div>
 
@@ -978,6 +1002,18 @@ function weekLabel(iso){ const s=parseISO(iso); const e=new Date(s); e.setDate(e
 
 const $ = id => document.getElementById(id);
 const charts = {};
+
+// ---- Theme preference ----
+const THEME_KEY="expense-theme-v1";
+function applyTheme(theme){
+  const value=theme==="light"?"light":"dark";
+  document.documentElement.dataset.theme=value;
+  const button=$("themeToggle");
+  if(button){ button.textContent=value==="light"?"Dark theme":"Light theme"; button.setAttribute("aria-pressed",value==="light"?"true":"false"); }
+  try{ localStorage.setItem(THEME_KEY,value); }catch(e){}
+}
+applyTheme((()=>{ try{return localStorage.getItem(THEME_KEY)||"dark";}catch(e){return "dark";} })());
+$("themeToggle").onclick=()=>applyTheme(document.documentElement.dataset.theme==="light"?"dark":"light");
 
 // ---- Dashboard personalization (local-first, Supabase-synced when authenticated) ----
 const PREF_KEY="expense-dashboard-preferences-v1";
@@ -1174,6 +1210,7 @@ function applyDashboardPrefs(){
         t.onclick=()=>setPanelState(id, panelState(id)==="collapsed"?"expanded":"collapsed");
         h2.appendChild(t); }
       t.textContent = state==="collapsed" ? "▸" : "▾";
+      t.setAttribute("aria-label", `${state==="collapsed"?"Expand":"Collapse"} ${node.dataset.panelTitle||id}`);
     }
   });
 }
@@ -1189,7 +1226,12 @@ function showTab(name){
   DASH_PREF.activeTab=name; queueDashboardPrefSave();
   document.querySelectorAll("[data-tab]").forEach(el=>el.classList.toggle("tab-off", el.dataset.tab!==name));
   document.querySelectorAll("#pagetabs [data-page], #sidebar .sb-nav a[data-page]")
-    .forEach(b=>b.classList.toggle("active", b.dataset.page===name));
+    .forEach(b=>{
+      const active=b.dataset.page===name;
+      b.classList.toggle("active",active);
+      if(b.tagName==="A") b.setAttribute("aria-current",active?"page":"false");
+      else b.setAttribute("aria-selected",active?"true":"false");
+    });
   if(location.hash!==`#tab-${name}`) history.replaceState(null,"",`#tab-${name}`);
   applyDashboardPrefs();                           // unhide this tab's panels
   redrawAll();                                     // charts size correctly now the containers are visible
@@ -1591,7 +1633,7 @@ function renderBudgets(catTot, days){
     return `<div class="budget-row">
       <span class="blabel"><span class="dot" style="background:${CAT_COLORS[c]||'#999'}"></span>${c}</span>
       <div class="budget-track"><div class="budget-fill" style="width:${pct}%;background:${color}"></div></div>
-      <span class="budget-nums"><b class="${over?'over':''}">${fmt0(spent)}</b> / <input class="budget-input" type="number" min="0" step="10" data-cat="${c}" value="${budgets[c]||0}"><span class="muted">/mo</span></span>
+      <span class="budget-nums"><b class="${over?'over':''}">${fmt0(spent)}</b> / <input class="budget-input" type="number" min="0" step="10" aria-label="Monthly budget for ${esc(c)}" data-cat="${c}" value="${budgets[c]||0}"><span class="muted">/mo</span></span>
     </div>`;
   }).join("");
   $("budgets").querySelectorAll(".budget-input").forEach(inp=>{
@@ -2019,24 +2061,30 @@ function renderAnalytics(){
   const varianceRows=categories.map(category=>{
     const observed=(currentCat[latestMonth]&&currentCat[latestMonth][category])||0;
     const normalized=observed*(latestScale?latestScale.factor:1);
+    const plan=Object.prototype.hasOwnProperty.call(budgets,category)?Math.max(0,+budgets[category]||0):null;
+    const planVariance=plan==null?null:normalized-plan;
     const baseline=avgLast(baselineMonths.map(m=>((historyCat[m]&&historyCat[m][category])||0)*monthScale(m,`${m}-01`,`${m}-${String(monthEnd(m)).padStart(2,"0")}`).factor))||0;
     const variance=normalized-baseline;
-    return {category,observed,normalized,baseline,variance,pct:baseline?variance/baseline*100:null};
+    return {category,observed,normalized,plan,planVariance,baseline,variance,pct:baseline?variance/baseline*100:null,planPct:plan?planVariance/plan*100:null};
   }).sort((a,b)=>Math.abs(b.variance)-Math.abs(a.variance));
   const totalObserved=varianceRows.reduce((s,r)=>s+r.observed,0), totalNormalized=varianceRows.reduce((s,r)=>s+r.normalized,0), totalBaseline=varianceRows.reduce((s,r)=>s+r.baseline,0), totalVariance=totalNormalized-totalBaseline;
+  const plannedRows=varianceRows.filter(r=>r.plan!=null), totalPlan=plannedRows.reduce((s,r)=>s+r.plan,0), totalPlanVariance=plannedRows.reduce((s,r)=>s+r.planVariance,0);
   const largest=varianceRows[0];
   $("varianceKpis").innerHTML = latestMonth&&varianceRows.length ? [
     analyticsKpi("Latest month",monthName(latestMonth),latestScale&&latestScale.partial?`${latestScale.observedDays} of ${latestScale.days} days observed`:"full month"),
     analyticsKpi("Observed spend",fmt(totalObserved),"transactions in latest month"),
     analyticsKpi("Normalized spend",fmt(totalNormalized),latestScale&&latestScale.partial?`×${latestScale.factor.toFixed(2)} partial-month factor`:"no proration"),
+    analyticsKpi("Budget gap",plannedRows.length?signedFmt(totalPlanVariance):"No targets",plannedRows.length?`${totalPlan?Math.abs(totalPlanVariance/totalPlan*100).toFixed(0):0}% vs monthly plan`:"add targets in Budgets & Goals",totalPlanVariance>0?"bad":totalPlanVariance<0?"good":""),
     analyticsKpi("Total variance",signedFmt(totalVariance),totalBaseline?`${totalVariance>=0?"above":"below"} 3-mo average`:"needs history",totalVariance>0?"bad":totalVariance<0?"good":""),
   ].join("") : analyticsKpi("Monthly variance","No spend","Choose a range with transactions");
   $("varianceTable").querySelector("tbody").innerHTML = varianceRows.length ? varianceRows.map(r=>{
     const cls=r.variance>0?"bad":r.variance<0?"good":"";
-    return `<tr><td><span class="tag"><span class="dot" style="background:${CAT_COLORS[r.category]||'#999'}"></span>${esc(r.category)}</span></td><td class="num">${fmt(r.observed)}</td><td class="num">${fmt(r.normalized)}</td><td class="num">${fmt(r.baseline)}</td><td class="num ${cls}">${signedFmt(r.variance)}</td><td class="num ${cls}">${r.pct==null?"n/a":signedPct(r.pct)}</td></tr>`;
-  }).join("") : '<tr><td colspan="6" class="muted">No category spend in the selected range.</td></tr>';
+    const planCls=r.planVariance>0?"bad":r.planVariance<0?"good":"";
+    return `<tr><td><span class="tag"><span class="dot" style="background:${CAT_COLORS[r.category]||'#999'}"></span>${esc(r.category)}</span></td><td class="num">${fmt(r.observed)}</td><td class="num">${fmt(r.normalized)}</td><td class="num">${r.plan==null?"n/a":fmt(r.plan)}</td><td class="num ${planCls}">${r.planVariance==null?"n/a":signedFmt(r.planVariance)}</td><td class="num">${fmt(r.baseline)}</td><td class="num ${cls}">${signedFmt(r.variance)}</td><td class="num ${cls}">${r.pct==null?"n/a":signedPct(r.pct)}</td></tr>`;
+  }).join("") : '<tr><td colspan="8" class="muted">No category spend in the selected range.</td></tr>';
   upsert("variance",{type:"bar",data:{labels:varianceRows.map(r=>r.category),datasets:[
     {label:"Normalized latest",data:varianceRows.map(r=>r.normalized),backgroundColor:varianceRows.map(r=>CAT_COLORS[r.category]||"#a98bff"),borderRadius:5,order:2},
+    {label:"Budget target",data:varianceRows.map(r=>r.plan),type:"line",borderColor:"#ffcf5c",backgroundColor:"#ffcf5c",borderWidth:2.5,pointRadius:3,tension:.25,order:1},
     {label:"3-mo average",data:varianceRows.map(r=>r.baseline),type:"line",borderColor:"#4edea3",backgroundColor:"#4edea3",borderWidth:2.5,pointRadius:3,tension:.25,order:1},
   ]},options:baseOpts({plugins:{legend:{display:true,position:"bottom",labels:{boxWidth:12,padding:14,usePointStyle:true}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`},backgroundColor:"#0f1117",borderColor:"#2a2f3d",borderWidth:1,padding:10}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:"#222633"},ticks:{callback:v=>fmt0(v)}}}})});
 
@@ -2551,7 +2599,7 @@ function renderGoals(){
     return `<div class="goal">
       <span class="gname"><span class="status-pill">${done?'Done':'Goal'}</span> ${esc(g.name)}</span>
       <div class="goal-track"><div class="goal-fill ${done?'done':''}" style="width:${pct}%"></div></div>
-      <span class="goal-nums"><input class="goal-input" type="number" min="0" step="50" data-i="${i}" value="${g.saved}"> / <b>${fmt0(g.target)}</b>
+      <span class="goal-nums"><input class="goal-input" type="number" min="0" step="50" aria-label="Saved amount for ${esc(g.name)}" data-i="${i}" value="${g.saved}"> / <b>${fmt0(g.target)}</b>
         · ${pct.toFixed(0)}% · ${done?'reached':fmt0(remaining)+' to go'}${eta}
         <button class="icon-btn" data-del="${i}" title="Delete goal" aria-label="Delete goal" style="margin-left:8px">Del</button></span>
     </div>`;
@@ -2664,6 +2712,9 @@ async function afterLogin(session){
 }
 
 if(SUPA){ supaBoot(); } else { boot(); }
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  navigator.serviceWorker.register("/sw.js").catch(e=>console.warn("PWA setup failed:",e));
+}
 </script>
 </body>
 </html>
