@@ -89,7 +89,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nhihad's Expense Tracker</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%237c5cff'/%3E%3Crect%20x='13'%20y='34'%20width='8'%20height='16'%20rx='2'%20fill='%23fff'/%3E%3Crect%20x='28'%20y='23'%20width='8'%20height='27'%20rx='2'%20fill='%23fff'/%3E%3Crect%20x='43'%20y='14'%20width='8'%20height='36'%20rx='2'%20fill='%23a98bff'/%3E%3Ccircle%20cx='47'%20cy='13'%20r='4.5'%20fill='%2351cf66'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
