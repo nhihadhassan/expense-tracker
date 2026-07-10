@@ -10,7 +10,7 @@ BMO/
 *.pdf
 *.md
 expense-dashboard.html
-favicon.svg
+/favicon.svg
 
 # Hosted statement-import function and its shared parsers.
 !api/
