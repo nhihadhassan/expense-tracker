@@ -729,7 +729,7 @@
 
     <div class="card full panel-node" id="budgetsCard" data-panel-id="budgets" data-panel-title="Budget targets">
       <h2>Budget targets</h2>
-      <p class="hint">Spend vs. monthly budget for the selected range (budgets prorate to the range length). Edit any target; it is saved on this device.</p>
+      <p class="hint">Spend vs. monthly budget for the selected range (budgets prorate to the range length). Edit any target; it is saved locally and synced when hosted.</p>
       <div class="budget-head">
         <span class="muted" id="budgetnote"></span>
         <button class="btn" id="resetBudgets">Reset to suggested</button>
@@ -758,7 +758,7 @@
 
     <div class="card full panel-node" id="goalsCard" data-panel-id="goals" data-panel-title="Savings goals">
       <h2>Savings goals <span class="muted" id="goalcount"></span></h2>
-      <p class="hint">Track progress toward what you're saving for. Edit the saved amount as you go; saved on this device.</p>
+      <p class="hint">Track progress toward what you're saving for. Edit the saved amount as you go; saved locally and synced when hosted.</p>
       <div class="goal-add">
         <input id="goalName" placeholder="Goal (e.g. Japan trip)">
         <input id="goalTarget" class="num" type="number" min="0" step="50" placeholder="Target $">
@@ -1060,6 +1060,83 @@ async function syncDashboardPrefs(){
       dismissed_warnings:DASH_PREF.dismissedWarnings, updated_at:new Date().toISOString(),
     },{onConflict:"user_id"});
   }catch(e){}
+}
+
+// ---- Personal state sync: income / goals / manual subs / budgets ↔ Supabase ----
+// Hosted: exp_settings, exp_goals, exp_subs, exp_budgets (RLS owner-only) are the source
+// of truth; localStorage stays the offline cache and the whole store for the local build.
+const PSTATE_INIT_KEY="personal_state_initialized";
+let PSTATE_TIMER=null, PSTATE_READY=false, PSTATE_SYNCING=false, PSTATE_DIRTY=false;
+function queuePersonalSave(){
+  if(!sb||!CURRENT_USER||!PSTATE_READY) return;
+  if(PSTATE_SYNCING){ PSTATE_DIRTY=true; return; }
+  clearTimeout(PSTATE_TIMER); PSTATE_TIMER=setTimeout(syncPersonalState,600);
+}
+function personalResponse(label, response){
+  if(response.error) throw new Error(`${label}: ${response.error.message}`);
+  return response.data;
+}
+async function syncPersonalState(){
+  if(!sb||!CURRENT_USER) return;
+  if(PSTATE_SYNCING){ PSTATE_DIRTY=true; return; }
+  PSTATE_SYNCING=true;
+  try{
+    personalResponse("Clear goals", await sb.from("exp_goals").delete().gte("id",0));
+    if(GOALS.length) personalResponse("Save goals", await sb.from("exp_goals").insert(
+      GOALS.map(g=>({name:g.name, target:+g.target||0, saved:+g.saved||0}))));
+    personalResponse("Clear subscriptions", await sb.from("exp_subs").delete().gte("id",0));
+    if(MANUAL_SUBS.length) personalResponse("Save subscriptions", await sb.from("exp_subs").insert(
+      MANUAL_SUBS.map(s=>({name:s.name, amount:+s.amount||0, cadence:s.cadence||"Monthly", category:s.category||"Subscriptions"}))));
+    personalResponse("Save settings", await sb.from("exp_settings").upsert([
+      {key:"income", value:INCOME},
+      {key:"dismissed_subs", value:[...DISMISSED]},
+      {key:PSTATE_INIT_KEY, value:true},
+    ],{onConflict:"key"}));
+    const b=loadBudgets();
+    personalResponse("Save budgets", await sb.from("exp_budgets").upsert(
+      Object.entries(b).map(([category,monthly])=>({category, monthly:+monthly||0})),{onConflict:"category"}));
+  }catch(e){ console.warn("Personal state sync failed:",e); }
+  finally{
+    PSTATE_SYNCING=false;
+    if(PSTATE_DIRTY){ PSTATE_DIRTY=false; queuePersonalSave(); }
+  }
+}
+async function loadPersonalState(){
+  if(!sb||!CURRENT_USER){ PSTATE_READY=true; return; }
+  try{
+    const [g,s,st,b]=await Promise.all([
+      sb.from("exp_goals").select("name,target,saved").order("id"),
+      sb.from("exp_subs").select("name,amount,cadence,category").order("id"),
+      sb.from("exp_settings").select("key,value"),
+      sb.from("exp_budgets").select("category,monthly"),
+    ]);
+    personalResponse("Load goals",g); personalResponse("Load subscriptions",s);
+    personalResponse("Load settings",st); personalResponse("Load budgets",b);
+    const settings={}; (st.data||[]).forEach(r=>{ settings[r.key]=r.value; });
+    const initialized=settings[PSTATE_INIT_KEY]===true || settings[PSTATE_INIT_KEY]==="true";
+    // exp_budgets already contains seeded defaults from the original hosted setup;
+    // those rows alone must not make the first Phase 1 login look initialized.
+    const hasLegacyPersonal=(g.data&&g.data.length) || (s.data&&s.data.length)
+      || ("income" in settings) || ("dismissed_subs" in settings);
+    const hasRemote=initialized || hasLegacyPersonal;
+    if(hasRemote){
+      GOALS=(g.data||[]).map(r=>({name:r.name, target:+r.target||0, saved:+r.saved||0}));
+      MANUAL_SUBS=(s.data||[]).map(r=>({name:r.name, amount:+r.amount||0, cadence:r.cadence||"Monthly", category:r.category||"Subscriptions"}));
+      INCOME="income" in settings ? Math.max(0, +settings.income||0) : 0;
+      DISMISSED=new Set(Array.isArray(settings.dismissed_subs) ? settings.dismissed_subs : []);
+      const map={}; (b.data||[]).forEach(r=>{ map[r.category]=+r.monthly||0; });
+      try{ localStorage.setItem(BKEY, JSON.stringify(map)); }catch(e){}
+      budgets=loadBudgets();
+      // mirror to localStorage (PSTATE_READY still false → no echo back to the server)
+      saveGoals(); saveSubs(); saveDismissed();
+      try{ localStorage.setItem(IKEY, INCOME); }catch(e){}
+      PSTATE_READY=true;
+      if(!initialized) queuePersonalSave(); // migrate legacy rows to the marked format
+    }else{
+      PSTATE_READY=true;
+      queuePersonalSave();          // first login after this feature: seed server from this device
+    }
+  }catch(e){ PSTATE_READY=true; console.warn("Personal state load failed:",e); }
 }
 function setPanelState(id,state){
   if(state==="expanded") delete DASH_PREF.states[id]; else DASH_PREF.states[id]=state;
@@ -1494,7 +1571,7 @@ document.querySelectorAll("#txtable th").forEach(th=>{
 // ---- Budgets (editable, persisted to localStorage) ----
 const BKEY="expense-budgets-v1";
 function loadBudgets(){ try{ return Object.assign({}, DEFAULT_BUDGETS, JSON.parse(localStorage.getItem(BKEY)||"{}")); }catch(e){ return {...DEFAULT_BUDGETS}; } }
-function saveBudgets(b){ try{ localStorage.setItem(BKEY, JSON.stringify(b)); }catch(e){} }
+function saveBudgets(b){ try{ localStorage.setItem(BKEY, JSON.stringify(b)); }catch(e){} queuePersonalSave(); }
 let budgets=loadBudgets();
 
 function renderBudgets(catTot, days){
@@ -1609,7 +1686,7 @@ function detectRecurring(){
 }
 let RECURRING = [];
 
-// ---- Manual subscriptions + dismissed auto-detects (localStorage) ----
+// ---- Manual subscriptions + dismissed auto-detects (localStorage + Supabase when hosted) ----
 const SUBKEY="expense-subs-v1", SUBDISKEY="expense-subs-dismissed-v1";
 const DEFAULT_SUBS=[
   {name:"Claude", amount:20, cadence:"Monthly", category:"Subscriptions"},
@@ -1620,8 +1697,8 @@ const DEFAULT_SUBS=[
 function loadJSON(k,def){ try{ const v=JSON.parse(localStorage.getItem(k)); return v??def; }catch(e){ return def; } }
 let MANUAL_SUBS = loadJSON(SUBKEY, null) || DEFAULT_SUBS.slice();
 let DISMISSED = new Set(loadJSON(SUBDISKEY, []));
-function saveSubs(){ localStorage.setItem(SUBKEY, JSON.stringify(MANUAL_SUBS)); }
-function saveDismissed(){ localStorage.setItem(SUBDISKEY, JSON.stringify([...DISMISSED])); }
+function saveSubs(){ try{ localStorage.setItem(SUBKEY, JSON.stringify(MANUAL_SUBS)); }catch(e){} queuePersonalSave(); }
+function saveDismissed(){ try{ localStorage.setItem(SUBDISKEY, JSON.stringify([...DISMISSED])); }catch(e){} queuePersonalSave(); }
 
 function allSubscriptions(){
   const manual = MANUAL_SUBS.map((s,i)=>{
@@ -2407,7 +2484,7 @@ function renderChequing(){
         y:{grid:{color:"#222633"}, ticks:{callback:v=>fmt0(v)}}}})});
 }
 
-// ---- Income & cash flow (localStorage) ----
+// ---- Income & cash flow (localStorage + Supabase when hosted) ----
 const IKEY="expense-income-v1";
 function loadIncome(){ const v=+localStorage.getItem(IKEY); return isFinite(v)?v:0; }
 let INCOME=loadIncome();
@@ -2453,13 +2530,13 @@ $("addSubBtn").onclick=()=>{
   saveSubs(); $("subName").value=""; $("subAmount").value=""; refreshSubs();
 };
 $("incomeInput").onchange=()=>{ INCOME=Math.max(0, +$("incomeInput").value||0);
-  localStorage.setItem(IKEY, INCOME); renderIncome(); renderGoals(); };
+  try{ localStorage.setItem(IKEY, INCOME); }catch(e){} queuePersonalSave(); renderIncome(); renderGoals(); };
 
-// ---- Savings goals (localStorage; works in both modes) ----
+// ---- Savings goals (localStorage + Supabase when hosted) ----
 const GKEY="expense-goals-v1";
 function loadGoals(){ try{ const v=JSON.parse(localStorage.getItem(GKEY)); return Array.isArray(v)?v:null; }catch(e){ return null; } }
 let GOALS = loadGoals() || [{name:"Japan trip", target:3000, saved:750}];
-function saveGoals(){ try{ localStorage.setItem(GKEY, JSON.stringify(GOALS)); }catch(e){} }
+function saveGoals(){ try{ localStorage.setItem(GKEY, JSON.stringify(GOALS)); }catch(e){} queuePersonalSave(); }
 
 function renderGoals(){
   $("goalcount").textContent = GOALS.length ? `· ${GOALS.length}` : "";
@@ -2573,6 +2650,7 @@ async function afterLogin(session){
   $("authgate").classList.remove("show");
   try{ await supaLoad(); }catch(e){ showGate("Couldn't load your data: "+e.message); LOGGED_IN=false; return; }
   await loadDashboardPrefs(session.user);
+  await loadPersonalState();                   // income/goals/subs/budgets from exp_* tables
   LIVE=false;                                  // hosted v1: rules editor/upload hidden
   $("uploadWrap").style.display="none"; $("rulesCard").style.display="none";
   applyData();
