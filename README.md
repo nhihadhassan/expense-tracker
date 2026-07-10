@@ -69,7 +69,7 @@ transaction is re-classified instantly — new rules take priority. Rules live i
 | `db.py` | SQLite schema + loader (transactions, statements, rules, budgets, goals). |
 | `server.py` | Stdlib HTTP backend: JSON API + PDF upload + static serving. |
 | `test_recon.py` | Guards parsing correctness (reconciles to statement totals, FX, recurring, anomalies). |
-| `favicon.svg` | App icon (purple bar-chart tile); also embedded inline in the dashboard `<head>` as a data-URI so the static file stays self-contained. |
+| `favicon.svg` | Premium app icon with an ascending amethyst bar mark and mint spark; copied into `web/` for the hosted app and used by the generated local dashboard. |
 
 Run the tests anytime: `python3 test_recon.py`
 

@@ -21,13 +21,10 @@
       <stop offset="1" stop-color="#4edea3"/>
     </linearGradient>
   </defs>
-
   <rect width="64" height="64" rx="16" fill="url(#tile)"/>
   <rect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#8b5cf6" stroke-opacity=".18" stroke-width="2"/>
-
   <rect x="12" y="34" width="10" height="18" rx="4" fill="url(#barOne)"/>
   <rect x="27" y="24" width="10" height="28" rx="4" fill="url(#barTwo)"/>
   <rect x="42" y="14" width="10" height="38" rx="4" fill="url(#barThree)"/>
-
   <path d="M48 6.5c.72 4.62 2.87 6.77 7.5 7.5-4.63.73-6.78 2.88-7.5 7.5-.72-4.62-2.87-6.77-7.5-7.5 4.63-.73 6.78-2.88 7.5-7.5Z" fill="url(#spark)"/>
 </svg>
