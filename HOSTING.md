@@ -13,6 +13,8 @@
 - The browser talks to Supabase directly via supabase-js (publishable key); RLS is the security.
 - Dashboard layout preferences and dismissed warnings sync through
   `exp_dashboard_preferences` with owner-only RLS.
+- Personal planning state syncs through `exp_settings`, `exp_goals`, `exp_subs`, and
+  `exp_budgets`; localStorage remains the local build's cache and offline fallback.
 - Statement previews use authenticated Vercel Python Functions. Normalized rows are staged in
   `exp_imports`, committed with deterministic dedupe keys, then the staged payload is deleted.
   Raw statement files are never retained online.
@@ -68,6 +70,10 @@ Never place `SUPABASE_SECRET_KEY` in `build_dashboard.py`, `web/index.html`, or 
 
 ## Hosted v1 scope
 Charts, insights, recurring, chequing, income, spend-vs-pay, calendar, transactions, synchronized
-dashboard personalization, warning dismissal, and preview-first statement imports. Budgets,
-goals, subscriptions, and manually entered income remain per-device in localStorage. The rules
-editor and inline recategorization remain local-only.
+dashboard personalization, warning dismissal, synced budgets/goals/subscriptions/manual income,
+and preview-first statement imports. The rules editor and inline recategorization remain local-only.
+
+Personal state is loaded after the authenticated transaction data. A
+`personal_state_initialized` row in `exp_settings` distinguishes a first-time account (seeded
+from the local cache) from an intentionally empty remote state. Writes are debounced and checked;
+if Supabase is unavailable, the local cache remains usable and the browser logs the sync failure.

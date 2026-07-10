@@ -4,14 +4,15 @@
 
 This is a local-first personal finance dashboard for Scotiabank, Tangerine, Amex, and BMO data, with a hosted Vercel/Supabase shell.
 
-- Working branch: `codex/treasury-analytics`
-- Published commit: `3983025` (`Add treasury analytics projections`)
+- Working branch: `main`
+- Base commit before Phase 1: `a139bf0` (`Add agent handoff notes`)
 - GitHub: <https://github.com/nhihadhassan/expense-tracker>
 - Production: <https://expense-tracker-sooty-six-38.vercel.app>
 - Last deployment status: Ready
 - The current checkout was clean before creating this handoff file.
 
-This handoff file is intentionally not included in the published commit yet.
+`codex/treasury-analytics` is already merged into `main` by fast-forward. The Phase 1 changes
+below are ready in the local working tree and have not been pushed or deployed yet.
 
 ## What was just implemented
 
@@ -113,11 +114,21 @@ npx --yes vercel@50.28.0 inspect <deployment-url>
 
 The hosted app is auth-gated and does not bake local financial data into `web/index.html`. Supabase owns hosted data and RLS. Follow `HOSTING.md` before changing auth, imports, or environment variables. Never commit `SUPABASE_SECRET_KEY`.
 
+## Phase 1 — Personal state sync
+
+The hosted dashboard now loads and debounced-writes income, goals, manual subscriptions,
+dismissed recurring detections, and budget targets through the existing owner-only `exp_*`
+tables. localStorage remains the local/offline cache. `personal_state_initialized` prevents an
+empty but intentional remote state from being mistaken for a first login.
+
+The source of truth for this behavior is the shared template in `build_dashboard.py`; regenerate
+`web/index.html` after editing it.
+
 ## Recommended next steps
 
-1. Decide whether this branch should be merged into `main` or opened as a pull request.
+1. Add `SUPABASE_SECRET_KEY` support to `push_supabase.py` so local statement refreshes do not require temporarily relaxing RLS.
 2. If changing the analytics formulas, add a small deterministic fixture or browser assertion for partial-month normalization and uncertainty-band values.
-3. Consider persisting user-entered income and manual subscription assumptions to Supabase if multi-device treasury planning becomes a requirement. They are currently localStorage-backed.
+3. Consider phone uploads through a Vercel Python function when Mac-based statement refresh becomes the larger annoyance.
 4. Keep the projection copy explicit that the uncertainty band is historical-spend spread, not a probabilistic guarantee.
 
 ## Important assumptions
@@ -126,4 +137,4 @@ The hosted app is auth-gated and does not bake local financial data into `web/in
 - Chequing income excludes internal transfers and peer transfers according to the existing classification logic.
 - Card transactions represent spending; payments and credits are handled separately by the existing spend-vs-payments panel.
 - Empty filtered states are valid and should remain non-throwing.
-- The production deployment is on the branch commit above, not on `main`.
+- The production deployment still needs to be confirmed after the Phase 1 build is published.
