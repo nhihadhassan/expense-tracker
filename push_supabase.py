@@ -3,8 +3,9 @@
 push_supabase.py — load all parsed data into the hosted Supabase tables (exp_*).
 
 Parsing stays local (where the EBCDIC/CSV logic works); this just POSTs the
-results to PostgREST. Run AFTER temporarily relaxing RLS, then re-lock.
-Re-run anytime you add statements — it upserts/refreshes wholesale.
+results to PostgREST. Set SUPABASE_SECRET_KEY for a service-key refresh that
+bypasses the owner-email RLS policy; the publishable-key fallback is retained
+for legacy/manual use. Re-run anytime you add statements — it refreshes wholesale.
 
 Usage:  python3 push_supabase.py
 """
@@ -16,14 +17,26 @@ import urllib.request
 import db
 import ingest
 
-SUPABASE_URL = "https://zgafubhzhxikuknihmnu.supabase.co"
-ANON_KEY = "sb_publishable_HMICK42AzL2W_Tpb6VutDQ_HawfnbWM"
+SUPABASE_URL = os.environ.get(
+    "SUPABASE_URL", "https://zgafubhzhxikuknihmnu.supabase.co"
+).rstrip("/")
+PUBLISHABLE_KEY = os.environ.get(
+    "SUPABASE_PUBLISHABLE_KEY", "sb_publishable_HMICK42AzL2W_Tpb6VutDQ_HawfnbWM"
+)
+SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY", "").strip()
+ACTIVE_KEY = SECRET_KEY or PUBLISHABLE_KEY
 HEADERS = {
-    "apikey": ANON_KEY,
-    "Authorization": f"Bearer {ANON_KEY}",
+    "apikey": ACTIVE_KEY,
     "Content-Type": "application/json",
     "Prefer": "return=minimal",
 }
+if SECRET_KEY:
+    # New sb_secret keys authenticate through apikey. Legacy service-role JWTs
+    # also need Authorization, matching the hosted function helper.
+    HEADERS["Authorization"] = f"Bearer {SECRET_KEY}" if SECRET_KEY.count(".") == 2 else ""
+else:
+    HEADERS["Authorization"] = f"Bearer {PUBLISHABLE_KEY}"
+HEADERS = {key: value for key, value in HEADERS.items() if value}
 
 
 def _req(method, path, body=None):
@@ -46,6 +59,8 @@ def insert(table, rows, chunk=500):
 
 
 def main():
+    if not SECRET_KEY:
+        print("Warning: SUPABASE_SECRET_KEY is not set; the publishable-key fallback may be blocked by RLS.")
     data = ingest.load_all()
     rules = ingest.MERCHANTS
 

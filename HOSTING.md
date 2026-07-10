@@ -44,10 +44,14 @@ Open **Admin → Import statement**, preview the detected account and totals, th
 
 The local bulk-refresh command remains available for rebuilding from every source file:
 ```
-python3 push_supabase.py     # re-parses locally, refreshes the exp_* tables
+SUPABASE_SECRET_KEY=sb_secret_... python3 push_supabase.py  # RLS-safe refresh
 ```
-Do not relax RLS for hosted imports. The Vercel Functions use the server-only
-`SUPABASE_SECRET_KEY` after verifying the signed-in owner.
+`push_supabase.py` also accepts `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from the
+environment. With `SUPABASE_SECRET_KEY` set, it supports both current `sb_secret_*` keys and
+legacy service-role JWTs, so RLS does not need to be relaxed. Without it, the script retains a
+publishable-key fallback and prints a warning because owner-email RLS may block the refresh.
+Do not print, commit, or place the secret in frontend files. The Vercel Functions use the same
+server-only key after verifying the signed-in owner.
 
 To change the frontend, edit the template in `build_dashboard.py`, run `python3 build_dashboard.py`
 (regenerates `web/index.html`), then `npx vercel deploy --prod --yes`.
@@ -77,3 +81,7 @@ Personal state is loaded after the authenticated transaction data. A
 `personal_state_initialized` row in `exp_settings` distinguishes a first-time account (seeded
 from the local cache) from an intentionally empty remote state. Writes are debounced and checked;
 if Supabase is unavailable, the local cache remains usable and the browser logs the sync failure.
+
+The hosted shell is also installable as a lightweight PWA: `web/manifest.webmanifest` provides
+the app identity and icon, while `web/sw.js` caches only same-origin shell assets. Supabase and
+`/api/` requests remain network-backed so financial data is not served from a stale cache.
