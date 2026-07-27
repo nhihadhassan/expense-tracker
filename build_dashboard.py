@@ -91,6 +91,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <title>Nhihad's Expense Tracker</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07182c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef2fa" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#07182c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -682,6 +684,48 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   /* Budgets & Goals: milestone / projection callouts */
   .bg-callouts{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:16px}
   .bg-callouts:empty{display:none}
+
+  /* ===================== Light theme (follows system) ===================== */
+  @media (prefers-color-scheme: light){
+    :root{
+      color-scheme:light;
+      --bg:#f2f5fb; --panel:#ffffff; --panel-2:#eef1f8;
+      --line:rgba(15,23,42,.12); --line-strong:rgba(15,23,42,.26);
+      --text:#101828; --muted:#5b6474; --soft:#7a8296;
+      --danger:#d92d20; --warning:#b54708; --success:#0e9f6e;
+      --glass:rgba(255,255,255,.78);
+      --focus:0 0 0 3px rgba(139,92,246,.30);
+    }
+    body{background:
+      radial-gradient(1100px 620px at 12% -6%, rgba(139,92,246,.12), transparent 46%),
+      radial-gradient(900px 560px at 96% 6%, rgba(78,222,163,.10), transparent 44%),
+      linear-gradient(180deg,#eef2fa, var(--bg) 340px);
+      background-attachment:fixed}
+    #sidebar{background:rgba(255,255,255,.85)}
+    .sb-nav a.active{color:#5b21b6; background:rgba(139,92,246,.14); box-shadow:none}
+    .card{box-shadow:0 10px 26px -20px rgba(15,23,42,.35)}
+    .card:hover{background:rgba(255,255,255,.94); box-shadow:0 16px 34px -20px rgba(139,92,246,.35)}
+    /* hero keeps white text → give it a solid gradient instead of translucent-over-light */
+    .hero-card{background:linear-gradient(120deg,#6d28d9,#8b5cf6 62%)}
+    .hero-label,.hero-trend{color:rgba(255,255,255,.82)}
+    .hero-trend.up{color:#fecaca} .hero-trend.down{color:#a7f3d0}
+    .hstat{background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.28)}
+    .hstat-label,.hstat-sub{color:rgba(255,255,255,.8)}
+    /* white-on-glass text becomes theme text */
+    .scard h3,.ring .ring-pct,.ring-info .ring-name,.card h2{color:var(--text)}
+    .kpi .value,.recur-kpi .value{color:var(--text)}
+    .fun-card{background:linear-gradient(120deg, rgba(139,92,246,.16), rgba(78,222,163,.12))}
+    .fun-card p{color:var(--text)} .fun-card b{color:#5b21b6}
+    .fun-card h3{color:#0e9f6e}
+    .mh-cell .mh-name,.mh-cell .mh-amt{color:#2e1065}
+    .mh-cell .mh-visits{color:rgba(46,16,101,.66)}
+    .insight .ico{background:rgba(15,23,42,.07); color:var(--muted)}
+    .badge.low{background:rgba(15,23,42,.08)}
+    #authgate{background:var(--bg)}
+    #dropzone{background:rgba(240,244,252,.88)}
+    .ptab:hover{color:var(--text)}
+    /* wallet cards keep their colored gradients + white text — no override needed */
+  }
 </style>
 </head>
 <body>
@@ -734,12 +778,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   </header>
 
   <main id="dashboardView">
-  <nav class="pagetabs" id="pagetabs">
-    <button class="ptab active" data-page="dashboard" type="button"><span class="material-symbols-outlined">dashboard</span> Dashboard</button>
-    <button class="ptab" data-page="accounts" type="button"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</button>
-    <button class="ptab" data-page="insights" type="button"><span class="material-symbols-outlined">analytics</span> Insights</button>
-    <button class="ptab" data-page="analytics" type="button"><span class="material-symbols-outlined">query_stats</span> Analytics</button>
-    <button class="ptab" data-page="budgets" type="button"><span class="material-symbols-outlined">savings</span> Budgets &amp; Goals</button>
+  <nav class="pagetabs" id="pagetabs" role="tablist" aria-label="Dashboard pages">
+    <button class="ptab active" data-page="dashboard" type="button" role="tab" aria-selected="true" aria-label="Dashboard"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span> Dashboard</button>
+    <button class="ptab" data-page="accounts" type="button" role="tab" aria-selected="false" aria-label="Accounts"><span class="material-symbols-outlined" aria-hidden="true">account_balance_wallet</span> Accounts</button>
+    <button class="ptab" data-page="insights" type="button" role="tab" aria-selected="false" aria-label="Insights"><span class="material-symbols-outlined" aria-hidden="true">analytics</span> Insights</button>
+    <button class="ptab" data-page="analytics" type="button" role="tab" aria-selected="false" aria-label="Analytics"><span class="material-symbols-outlined" aria-hidden="true">query_stats</span> Analytics</button>
+    <button class="ptab" data-page="budgets" type="button" role="tab" aria-selected="false" aria-label="Budgets and goals"><span class="material-symbols-outlined" aria-hidden="true">savings</span> Budgets &amp; Goals</button>
   </nav>
   <div class="hero-card" data-tab="dashboard">
     <div class="hero-main">
@@ -2309,6 +2353,29 @@ function renderInsights(rows, total){
   // 5) Recurring summary
   if(RECURRING.length){ const mo=RECURRING.reduce((a,r)=>a+r.monthly,0);
     out.push({type:'info', ico:'Repeat', html:`<div><b>${RECURRING.length} recurring charges</b>, about ${fmt(mo)}/mo (${fmt(mo*12)}/yr). See the subscriptions panel below.</div>`}); }
+  // 6) Budget overspend: latest month in view vs monthly targets (prorated if partial)
+  {
+    const bud=loadBudgets();
+    const monthsB=[...new Set(rows.map(r=>r.date.slice(0,7)))].sort();
+    if(monthsB.length){
+      const mB=monthsB[monthsB.length-1];
+      const mRows=rows.filter(r=>r.date.slice(0,7)===mB);
+      const lastDay=Math.max(...mRows.map(r=>+r.date.slice(8)));
+      const fracB=Math.min(1, lastDay/monthEnd(mB));
+      const mLabel=MONTH_LABELS[+mB.slice(5)-1]+" "+mB.slice(0,4);
+      const mSpend={}; mRows.forEach(r=>{ mSpend[r.category]=(mSpend[r.category]||0)+r.amount; });
+      Object.entries(mSpend).sort((a,b)=>b[1]-a[1]).forEach(([c,amt])=>{
+        const t=+bud[c]||0; if(t<=0) return;
+        const cap=t*fracB;                       // budget available so far this month
+        if(amt>cap*1.05 && amt-cap>=25){
+          out.push({type:'alert', ico:'Budget', dismissible:true,
+            id:warningId(["budget-over",mB,c,Math.round(amt)]),
+            label:`${c} over budget in ${mLabel}`,
+            html:`<div><b>${esc(c)} is over budget:</b> ${fmt(amt)} spent vs ${fmt(cap)} budgeted${fracB<0.97?" so far":""} in ${mLabel} — <b>${fmt(amt-cap)} over</b>.</div>`});
+        }
+      });
+    }
+  }
 
   const dismissed=dismissedWarningIds();
   const visible=out.filter(o=>!o.dismissible||!dismissed.has(o.id));
