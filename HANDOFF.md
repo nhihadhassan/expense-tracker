@@ -5,14 +5,13 @@
 This is a local-first personal finance dashboard for Scotiabank, Tangerine, Amex, and BMO data, with a hosted Vercel/Supabase shell.
 
 - Working branch: `main`
-- Latest local commit: `5877f25` (`Continue treasury roadmap phases`)
+- Latest commit: `f520ad6` (`Add net worth panel; fix light-theme conflict from prior pass`), pushed to `origin/main`
 - GitHub: <https://github.com/nhihadhassan/expense-tracker>
 - Production: <https://expense-tracker-sooty-six-38.vercel.app>
-- Last deployment status: Ready
-- The current checkout was clean before creating this handoff file.
-
-`codex/treasury-analytics` is already merged into `main` by fast-forward. This continuation is
-committed locally and is ready to publish; production deployment is tracked separately.
+- All six roadmap phases from the original plan are now complete and pushed:
+  P0 merge, P1 personal-state sync, P2 service-key refresh, P3 hosted ingestion,
+  P4 deeper analytics (variance/trends/projection/net worth/budget alerts + `test_analytics.py`),
+  P5 polish (PWA icons, tab a11y, light theme).
 
 ## What was just implemented
 
