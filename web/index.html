@@ -37,6 +37,10 @@
     --line:rgba(20,35,55,.12); --line-strong:rgba(20,35,55,.22);
     --text:#172033; --muted:#5d6b7e; --soft:#718096;
     --glass:rgba(255,255,255,.72);
+    /* dark-mode danger/warning/success are pale, low-contrast tones meant to sit on a
+       dark panel; on white they read as washed-out text, so use deeper, WCAG-friendlier
+       shades here. Accent/purple stays the same — it's a brand color, not a status color. */
+    --danger:#d92d20; --warning:#b54708; --success:#0e9f6e;
   }
   html[data-theme="light"] body{
     background:
@@ -45,9 +49,37 @@
       linear-gradient(180deg,#eef2ff,var(--bg) 340px);
   }
   html[data-theme="light"] .field select{color-scheme:light}
+  html[data-theme="light"] #sidebar{background:rgba(255,255,255,.85)}
+  html[data-theme="light"] .sb-nav a.active{color:#5b21b6; background:rgba(139,92,246,.14); box-shadow:none}
+  /* .hero-card's base gradient fades to a translucent navy meant to blend into a dark
+     page; over a light page that reads as a muddy gray-purple wash, so light mode gets
+     an opaque gradient instead (wallet cards are already opaque and need no fix). */
+  html[data-theme="light"] .hero-card{background:linear-gradient(120deg,#6d28d9,#8b5cf6 62%)}
+  html[data-theme="light"] .hero-label,
+  html[data-theme="light"] .hero-trend{color:rgba(255,255,255,.82)}
+  html[data-theme="light"] .hero-trend.up{color:#fecaca}
+  html[data-theme="light"] .hero-trend.down{color:#a7f3d0}
+  html[data-theme="light"] .hstat{background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.28)}
+  html[data-theme="light"] .hstat-label,
+  html[data-theme="light"] .hstat-sub{color:rgba(255,255,255,.8)}
+  /* these are hardcoded white for the dark theme's translucent-over-dark-page cards;
+     .ring-info .ring-name is already covered above, .scard/.ring-pct/.fun-card/.mh-cell
+     were missed and would render invisible (white-on-white) in light mode. */
   html[data-theme="light"] .scard h3,
   html[data-theme="light"] .ring .ring-pct,
   html[data-theme="light"] .ring-info .ring-name{color:var(--text)}
+  html[data-theme="light"] .fun-card{background:linear-gradient(120deg, rgba(139,92,246,.16), rgba(78,222,163,.12))}
+  html[data-theme="light"] .fun-card p{color:var(--text)}
+  html[data-theme="light"] .fun-card b{color:#5b21b6}
+  html[data-theme="light"] .fun-card h3{color:#0e9f6e}
+  html[data-theme="light"] .mh-cell .mh-name,
+  html[data-theme="light"] .mh-cell .mh-amt{color:#2e1065}
+  html[data-theme="light"] .mh-cell .mh-visits{color:rgba(46,16,101,.66)}
+  /* .insight .ico and .badge.low use a fixed dark chip background (oklch, not a var)
+     designed for dark-mode --muted/--soft text; in light mode those tokens turn dark
+     too, which would put dark text on a dark chip. */
+  html[data-theme="light"] .insight .ico{background:rgba(15,23,42,.07); color:var(--muted)}
+  html[data-theme="light"] .badge.low{background:rgba(15,23,42,.08)}
   *{box-sizing:border-box}
   html,body{max-width:100%; overflow-x:hidden}
   input,select,button{font:inherit}
@@ -600,47 +632,6 @@
   .bg-callouts{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:16px}
   .bg-callouts:empty{display:none}
 
-  /* ===================== Light theme (follows system) ===================== */
-  @media (prefers-color-scheme: light){
-    :root{
-      color-scheme:light;
-      --bg:#f2f5fb; --panel:#ffffff; --panel-2:#eef1f8;
-      --line:rgba(15,23,42,.12); --line-strong:rgba(15,23,42,.26);
-      --text:#101828; --muted:#5b6474; --soft:#7a8296;
-      --danger:#d92d20; --warning:#b54708; --success:#0e9f6e;
-      --glass:rgba(255,255,255,.78);
-      --focus:0 0 0 3px rgba(139,92,246,.30);
-    }
-    body{background:
-      radial-gradient(1100px 620px at 12% -6%, rgba(139,92,246,.12), transparent 46%),
-      radial-gradient(900px 560px at 96% 6%, rgba(78,222,163,.10), transparent 44%),
-      linear-gradient(180deg,#eef2fa, var(--bg) 340px);
-      background-attachment:fixed}
-    #sidebar{background:rgba(255,255,255,.85)}
-    .sb-nav a.active{color:#5b21b6; background:rgba(139,92,246,.14); box-shadow:none}
-    .card{box-shadow:0 10px 26px -20px rgba(15,23,42,.35)}
-    .card:hover{background:rgba(255,255,255,.94); box-shadow:0 16px 34px -20px rgba(139,92,246,.35)}
-    /* hero keeps white text → give it a solid gradient instead of translucent-over-light */
-    .hero-card{background:linear-gradient(120deg,#6d28d9,#8b5cf6 62%)}
-    .hero-label,.hero-trend{color:rgba(255,255,255,.82)}
-    .hero-trend.up{color:#fecaca} .hero-trend.down{color:#a7f3d0}
-    .hstat{background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.28)}
-    .hstat-label,.hstat-sub{color:rgba(255,255,255,.8)}
-    /* white-on-glass text becomes theme text */
-    .scard h3,.ring .ring-pct,.ring-info .ring-name,.card h2{color:var(--text)}
-    .kpi .value,.recur-kpi .value{color:var(--text)}
-    .fun-card{background:linear-gradient(120deg, rgba(139,92,246,.16), rgba(78,222,163,.12))}
-    .fun-card p{color:var(--text)} .fun-card b{color:#5b21b6}
-    .fun-card h3{color:#0e9f6e}
-    .mh-cell .mh-name,.mh-cell .mh-amt{color:#2e1065}
-    .mh-cell .mh-visits{color:rgba(46,16,101,.66)}
-    .insight .ico{background:rgba(15,23,42,.07); color:var(--muted)}
-    .badge.low{background:rgba(15,23,42,.08)}
-    #authgate{background:var(--bg)}
-    #dropzone{background:rgba(240,244,252,.88)}
-    .ptab:hover{color:var(--text)}
-    /* wallet cards keep their colored gradients + white text — no override needed */
-  }
 </style>
 </head>
 <body>
@@ -907,6 +898,16 @@
       </table></div>
     </div>
 
+    <div class="card full panel-node" id="netWorthCard" data-panel-id="networth" data-panel-title="Net worth" style="display:none">
+      <h2>Net worth <span class="muted" id="netWorthCoverage"></span></h2>
+      <p class="hint" id="netWorthHint">Chequing balance minus the card balances we can actually verify from a statement. Cards without a loaded statement balance are not guessed at.</p>
+      <div class="analytics-kpis" id="netWorthKpis"></div>
+      <div class="chartbox tall"><canvas id="netWorth"></canvas></div>
+      <div class="tablewrap" style="margin-top:16px"><table class="analytics-table" id="netWorthTable">
+        <thead><tr><th>Month</th><th class="num">Chequing</th><th class="num">Tracked card debt</th><th class="num">Net worth</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+
     <div class="card full panel-node" id="rulesCard" data-panel-id="rules" data-panel-title="Categorization rules" style="display:none">
       <h2>Categorization rules <span class="muted" id="rulecount"></span></h2>
       <p class="hint">These keyword rules turn raw statement text into tidy merchant names + categories. Edit a category to reclassify every matching transaction instantly. New rules take priority (matched first).</p>
@@ -1064,7 +1065,7 @@ const PREF_KEY="expense-dashboard-preferences-v1";
 const PREF_VERSION=1;
 const DEFAULT_PANEL_ORDER=["summary","insights","monthly","category","weekly","heatmap","budgets",
   "chequing","income","goals","merchants","payments","recurring","forecast",
-  "variance","trends","projection","rules","transactions"];
+  "variance","trends","projection","networth","rules","transactions"];
 // ---- Tabbed pages: each panel belongs to exactly one page ----
 const PAGE_ORDER=["dashboard","accounts","insights","analytics","budgets"];
 const PAGE_LABEL={dashboard:"Dashboard",accounts:"Accounts",insights:"Insights",analytics:"Analytics",budgets:"Budgets & Goals"};
@@ -1072,7 +1073,7 @@ const TAB_OF={
   summary:"dashboard", insights:"dashboard", monthly:"dashboard", category:"dashboard",
   chequing:"accounts", payments:"accounts", merchants:"accounts", transactions:"accounts",
   weekly:"insights", heatmap:"insights", recurring:"insights", forecast:"insights",
-  variance:"analytics", trends:"analytics", projection:"analytics",
+  variance:"analytics", trends:"analytics", projection:"analytics", networth:"analytics",
   budgets:"budgets", goals:"budgets", income:"budgets", rules:"budgets",
 };
 let CURRENT_USER=null;
@@ -1561,6 +1562,7 @@ function render(){
   renderBalance();          // purchases vs payments, all cards (respects account filter)
   renderBudgets(catTot, days);
   renderAnalytics();
+  renderNetWorth();          // unfiltered like renderChequing — whole-account balance history
   renderTable(rows);
   applyDashboardPrefs();
 }
@@ -2597,6 +2599,42 @@ function renderChequing(){
         backgroundColor:"#0f1117", borderColor:"#2a2f3d", borderWidth:1, padding:10}},
       scales:{x:{grid:{display:false}, ticks:{maxTicksLimit:14, autoSkip:true}},
         y:{grid:{color:"#222633"}, ticks:{callback:v=>fmt0(v)}}}})});
+}
+
+// ---- Net worth: chequing balance minus the one card liability we can actually verify ----
+// Amex/BMO/Tangerine CC come from CSV exports with no statement balance, so their debt is
+// never estimated here — only Scotiabank (parsed from real statement PDFs) counts as tracked.
+function renderNetWorth(){
+  const card=$("netWorthCard"); if(!card) return;
+  if(!CHEQUING.length){ card.style.display="none"; return; }
+  card.style.display="";
+  const chqByMonth={};
+  CHEQUING.forEach(r=>{ if(r.balance!=null) chqByMonth[r.date.slice(0,7)]=r.balance; });
+  const debtByMonth={};
+  STATEMENTS.forEach(s=>{ if(s.balance!=null) debtByMonth[s.date.slice(0,7)]=s.balance; });
+  const allMonths=Object.keys(chqByMonth).sort();
+  const months=allMonths.slice(-12);          // last 12 months keeps the chart/table readable
+  const trackedAccounts=STATEMENTS.length?1:0, totalAccounts=ACCOUNTS.length||trackedAccounts;
+  const latestM=allMonths[allMonths.length-1];
+  const latestChq=chqByMonth[latestM];
+  const latestDebt=Object.prototype.hasOwnProperty.call(debtByMonth,latestM)?debtByMonth[latestM]:null;
+  const latestNet=latestDebt!=null?latestChq-latestDebt:null;
+  $("netWorthCoverage").textContent=`· ${trackedAccounts} of ${totalAccounts} card account${totalAccounts===1?"":"s"} tracked`;
+  $("netWorthKpis").innerHTML=[
+    analyticsKpi("Chequing balance",fmt(latestChq),`as of ${dlabel(CHEQUING[CHEQUING.length-1].date)}`),
+    analyticsKpi("Tracked card debt",latestDebt!=null?fmt(latestDebt):"n/a",latestDebt!=null?"Scotiabank, latest statement":"no statement for "+monthName(latestM)),
+    analyticsKpi("Net worth (tracked)",latestNet!=null?fmt(latestNet):"n/a",latestNet!=null?"chequing − tracked card debt":"needs a matching statement month",latestNet!=null?(latestNet>=0?"good":"bad"):""),
+  ].join("");
+  const netSeries=months.map(m=>Object.prototype.hasOwnProperty.call(debtByMonth,m)?chqByMonth[m]-debtByMonth[m]:null);
+  upsert("netWorth",{type:"line",data:{labels:months.map(monthName),datasets:[
+    {label:"Chequing (asset)",data:months.map(m=>chqByMonth[m]??null),borderColor:"#22b8cf",backgroundColor:"rgba(34,184,207,.12)",borderWidth:2.5,pointRadius:2.5,tension:.28,spanGaps:true,fill:false},
+    {label:"Tracked card debt",data:months.map(m=>debtByMonth[m]??null),borderColor:"#ff9d94",backgroundColor:"#ff9d94",borderDash:[5,4],borderWidth:2,pointRadius:2.5,tension:.28,spanGaps:false,fill:false},
+    {label:"Net worth (tracked)",data:netSeries,borderColor:"#4edea3",backgroundColor:"rgba(78,222,163,.14)",borderWidth:3,pointRadius:3,tension:.28,spanGaps:false,fill:false},
+  ]},options:baseOpts({plugins:{legend:{display:true,position:"bottom",labels:{boxWidth:12,padding:14,usePointStyle:true}},tooltip:{callbacks:{label:c=>c.parsed.y==null?null:` ${c.dataset.label}: ${fmt(c.parsed.y)}`},backgroundColor:"#0f1117",borderColor:"#2a2f3d",borderWidth:1,padding:10}},scales:{x:{grid:{display:false}},y:{grid:{color:"#222633"},ticks:{callback:v=>fmt0(v)}}}})});
+  $("netWorthTable").querySelector("tbody").innerHTML=months.length?months.map(m=>{
+    const chq=chqByMonth[m], debt=Object.prototype.hasOwnProperty.call(debtByMonth,m)?debtByMonth[m]:null, net=debt!=null?chq-debt:null;
+    return `<tr><td>${monthName(m)}</td><td class="num">${fmt(chq)}</td><td class="num">${debt!=null?fmt(debt):"not tracked"}</td><td class="num ${net!=null?(net>=0?"good":"bad"):""}">${net!=null?fmt(net):"n/a"}</td></tr>`;
+  }).join("") : '<tr><td colspan="4" class="muted">No chequing history loaded.</td></tr>';
 }
 
 // ---- Income & cash flow (localStorage + Supabase when hosted) ----

@@ -144,9 +144,40 @@ Phone-friendly statement ingestion is already present through the authenticated 
 functions under `api/import/`. Preview, dedupe, commit, and import history are backed by
 `exp_imports`; the parser remains Python so no EBCDIC logic is ported to Deno.
 
+## Phase 4 — In-app budget alerts, tab a11y, light theme, net worth
+
+- Insights now emits a budget-overspend alert per category: latest month in the current view vs
+  its budget target, prorated by observed days when the month is partial. Skips categories with
+  no target or with a gap under both 5% and $25 (avoids noise on tiny targets).
+- Page tabs (`#pagetabs` and the sidebar) have `role="tab"`/`aria-selected`/`aria-label`, kept in
+  sync by `showTab()`; the sidebar's `<a>` links use `aria-current` instead.
+- A `[data-theme="light"]` toggle already existed (`#themeToggle`, `THEME_KEY`) from an earlier
+  pass on this branch — do not add a second, competing `@media (prefers-color-scheme: light)`
+  block; a first attempt at this did exactly that and silently fought the manual toggle whenever
+  the OS preference and the toggle disagreed. Fixed by deleting the media query and merging only
+  the genuinely uncovered contrast bugs into the existing selector: the hero card's translucent
+  gradient (fine on a dark page, muddy on light — light mode gets an opaque one), several
+  hardcoded `color:#fff` labels on translucent cards (`.scard h3`, `.ring .ring-pct`, `.fun-card`,
+  `.mh-cell`) that the original pass missed, and `--danger`/`--warning`/`--success`, which the
+  original pass never overrode — the dark-theme values are pale tones meant for a dark panel and
+  read as low-contrast text on white.
+- Real PNG app icons: `apple-touch-icon.png` (180px) plus `icon-192.png`/`icon-512.png` in
+  `manifest.webmanifest`, rasterized from `favicon.svg` via macOS `qlmanage` (no extra tooling
+  installed). Not marked `purpose: maskable` — the source art bleeds to the canvas edges with no
+  safe-zone padding, so an adaptive-icon mask would clip it.
+- Net worth (`networth` panel, Analytics tab, `renderNetWorth()`): chequing balance (asset, full
+  history) minus Scotiabank's statement balance (the only liability with a real, verified number).
+  Amex/BMO/Tangerine Mastercard are CSV imports with no statement balance in the data, so their
+  debt is never estimated or guessed — the KPI row says "N of M card accounts tracked" and the
+  table prints "not tracked" for any month without a matching statement, rather than silently
+  omitting the gap. This was flagged in the prior handoff as blocked on "card-balance coverage
+  for every account"; the fix was to stop waiting for full coverage and show a correctly-labeled
+  partial number instead.
+
 ## Remaining phases
 
-1. Add a real monthly net-worth snapshot table once card-balance coverage is available for every account.
+1. Extend net-worth coverage if/when Amex, BMO, or Tangerine ever expose a real statement
+   balance (they don't today — CSV exports have no such field).
 2. Add outbound budget/anomaly alerts only after an email or messaging provider and credentials are chosen.
 3. Keep the projection copy explicit that the uncertainty band is historical-spend spread, not a probabilistic guarantee.
 
