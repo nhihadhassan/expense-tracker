@@ -197,8 +197,9 @@ def _parse_pdf(path, filename):
         return "Scotiabank", "Scotiabank Visa", tx, [], payments, [statement] if statement else []
 
     try:
-        from markitdown import MarkItDown
-        converted = MarkItDown().convert(path).text_content
+        import pdfplumber
+        with pdfplumber.open(path) as document:
+            converted = "\n".join(page.extract_text() or "" for page in document.pages)
     except Exception as exc:
         raise ApiError("This PDF could not be read. For BMO, export CSV instead.") from exc
     kind = _tangerine_kind(converted)
