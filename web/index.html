@@ -692,6 +692,13 @@
   .mobile-more-btn{min-height:92px; border:1px solid var(--line); border-radius:16px; background:var(--panel); color:var(--text);
     display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; gap:8px; padding:14px; cursor:pointer; text-align:left}
   .mobile-more-btn .material-symbols-outlined{color:var(--accent)}
+  body.cashflow-page #dashboardView{display:flex;flex-direction:column}
+  body.cashflow-page #pagetabs{order:1}
+  body.cashflow-page #mobileCashFlow{display:block;order:2;width:100%;max-width:780px;margin:0 auto;padding:8px 0 108px}
+  body.cashflow-page #mobileCashFlow .mobile-titlebar{margin-bottom:20px}
+  body.cashflow-page #mobileCashFlow .mobile-period{max-width:780px}
+  body.cashflow-page #mobileCashFlow .mobile-donut-wrap{width:min(100%,460px);min-height:380px}
+  body.cashflow-page #mobileCashFlow .mobile-donut-wrap canvas{height:380px !important}
   .money-dock{display:flex; position:fixed; right:24px; bottom:24px; z-index:58; gap:10px; padding:8px; border:1px solid var(--line); border-radius:999px;
     background:var(--panel); box-shadow:0 18px 48px -24px rgba(0,0,0,.65)}
   .money-action{min-height:50px; border:0; border-radius:999px; padding:0 17px; display:flex; align-items:center; gap:8px;
@@ -795,6 +802,7 @@
   <div class="sb-brand"><span class="sb-logo">◈</span> Nhihad's Expense Tracker</div>
   <nav class="sb-nav">
     <a class="active" href="#tab-dashboard" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+    <a href="#cash-flow" data-cashflow-page><span class="material-symbols-outlined">donut_large</span> Cash flow</a>
     <a href="#tab-accounts" data-page="accounts"><span class="material-symbols-outlined">account_balance_wallet</span> Accounts</a>
     <a href="#tab-insights" data-page="insights"><span class="material-symbols-outlined">analytics</span> Insights</a>
     <a href="#tab-analytics" data-page="analytics"><span class="material-symbols-outlined">query_stats</span> Analytics</a>
@@ -877,6 +885,7 @@
   </section>
   <nav class="pagetabs" id="pagetabs" role="tablist" aria-label="Dashboard pages">
     <button class="ptab active" data-page="dashboard" type="button" role="tab" aria-selected="true" aria-label="Dashboard"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span> Dashboard</button>
+    <button class="ptab" data-cashflow-page type="button" role="tab" aria-selected="false" aria-label="Cash flow"><span class="material-symbols-outlined" aria-hidden="true">donut_large</span> Cash flow</button>
     <button class="ptab" data-page="accounts" type="button" role="tab" aria-selected="false" aria-label="Accounts"><span class="material-symbols-outlined" aria-hidden="true">account_balance_wallet</span> Accounts</button>
     <button class="ptab" data-page="insights" type="button" role="tab" aria-selected="false" aria-label="Insights"><span class="material-symbols-outlined" aria-hidden="true">analytics</span> Insights</button>
     <button class="ptab" data-page="analytics" type="button" role="tab" aria-selected="false" aria-label="Analytics"><span class="material-symbols-outlined" aria-hidden="true">query_stats</span> Analytics</button>
@@ -1517,6 +1526,8 @@ function redrawAll(){
 }
 function showTab(name){
   if(!PAGE_ORDER.includes(name)) name="dashboard";
+  document.body.classList.remove("cashflow-page");
+  $("mobileCashFlow")?.classList.remove("active");
   showAppView("dashboard");                       // leave the Admin view if we're in it
   DASH_PREF.activeTab=name; queueDashboardPrefSave();
   document.querySelectorAll("[data-tab]").forEach(el=>el.classList.toggle("tab-off", !el.dataset.tab.split(/\s+/).includes(name)));
@@ -1530,6 +1541,25 @@ function showTab(name){
   if(location.hash!==`#tab-${name}`) history.replaceState(null,"",`#tab-${name}`);
   applyDashboardPrefs();                           // unhide this tab's panels
   redrawAll();                                     // charts size correctly now the containers are visible
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function showCashflowPage(){
+  if(matchMedia("(max-width:700px)").matches){ openMobileCashflow(); return; }
+  showAppView("dashboard");
+  document.body.classList.remove("mobile-custom");
+  document.body.classList.add("cashflow-page");
+  document.querySelectorAll("[data-mobile-screen]").forEach(screen=>screen.classList.toggle("active",screen.dataset.mobileScreen==="cashflow"));
+  document.querySelectorAll("[data-tab],.panel-node").forEach(panel=>panel.classList.add("tab-off"));
+  document.querySelectorAll("#pagetabs [data-page], #sidebar .sb-nav a[data-page]").forEach(tab=>{
+    tab.classList.remove("active");
+    if(tab.tagName==="A") tab.setAttribute("aria-current","false"); else tab.setAttribute("aria-selected","false");
+  });
+  document.querySelectorAll("[data-cashflow-page]").forEach(tab=>{
+    tab.classList.add("active");
+    if(tab.tagName==="A") tab.setAttribute("aria-current","page"); else tab.setAttribute("aria-selected","true");
+  });
+  if(location.hash!=="#cash-flow") history.replaceState(null,"","#cash-flow");
+  renderMobileOverview();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function renderAdmin(){
@@ -1592,6 +1622,7 @@ $("adminNav").onclick=()=>showAppView("admin");
 window.addEventListener("hashchange",()=>{
   const h=location.hash;
   if(h==="#admin") showAppView("admin");
+  else if(h==="#cash-flow") showCashflowPage();
   else if(h.startsWith("#tab-")){ const n=h.slice(5); showTab(PAGE_ORDER.includes(n)?n:"dashboard"); }
   else showAppView("dashboard");
 });
@@ -2733,6 +2764,7 @@ function openMobileCashflow(){
   showMobileView("cashflow");
 }
 function closeMobileCashflow(){
+  if(!matchMedia("(max-width:700px)").matches){showTab("dashboard");return;}
   if(location.hash==="#cash-flow"&&history.state?.mobileView==="cashflow")history.back();
   else{history.replaceState(null,"",location.pathname+location.search);showMobileView("overview");}
 }
@@ -2861,6 +2893,7 @@ $("uploadInput").onchange=()=>{ uploadFiles([...$("uploadInput").files]); $("upl
   document.querySelectorAll("#pagetabs [data-page], #sidebar .sb-nav a[data-page]").forEach(el=>{
     el.onclick=(e)=>{ e.preventDefault(); showTab(el.dataset.page); };
   });
+  document.querySelectorAll("[data-cashflow-page]").forEach(el=>el.onclick=e=>{e.preventDefault();showCashflowPage();});
   if($("sbAdmin")) $("sbAdmin").onclick=(e)=>{ e.preventDefault(); showAppView("admin"); };
   if($("sbSignout")) $("sbSignout").onclick=(e)=>{ e.preventDefault(); const s=$("signout"); if(s) s.click(); };
   if($("heroExport")) $("heroExport").onclick=()=>$("export").click();
@@ -3278,7 +3311,7 @@ async function boot(){
   $("rulesCard").style.display = LIVE ? "" : "none";
   if(LIVE){ $("subtitle").dataset.live="1"; renderRules(); }
   applyData();
-  if(location.hash==="#cash-flow"&&matchMedia("(max-width:700px)").matches) showMobileView("cashflow");
+  if(location.hash==="#cash-flow") showCashflowPage();
   else if(location.hash==="#admin") showAppView("admin");
   else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
   else showTab(DASH_PREF.activeTab||"dashboard");
@@ -3347,7 +3380,7 @@ async function afterLogin(session){
   LIVE=false;                                  // hosted v1: rules editor/upload hidden
   $("uploadWrap").style.display="none"; $("rulesCard").style.display="none";
   applyData();
-  if(location.hash==="#cash-flow"&&matchMedia("(max-width:700px)").matches) showMobileView("cashflow");
+  if(location.hash==="#cash-flow") showCashflowPage();
   else if(location.hash==="#admin") showAppView("admin");
   else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
   else showTab(DASH_PREF.activeTab||"dashboard");
