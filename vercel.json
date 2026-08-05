@@ -1,8 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "outputDirectory": "web-react",
+  "outputDirectory": "web",
   "cleanUrls": true,
-  "framework": "vite",
+  "framework": null,
+  "rewrites": [
+    { "source": "/app/(.*)", "destination": "/app/index.html" }
+  ],
   "functions": {
     "api/**/*.py": {
       "maxDuration": 60
