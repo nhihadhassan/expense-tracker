@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic cash-flow and timeframe acceptance tests for the mobile overview."""
+"""Deterministic cash-flow and timeframe acceptance tests for the mobile cash-flow page."""
 
 from datetime import date, timedelta
 
@@ -40,6 +40,14 @@ def aggregate(expenses, imported_income, manual_entries, start, end):
 
 
 def run():
+    source = open("build_dashboard.py", encoding="utf-8").read()
+    assert 'data-mobile-screen="cashflow"' in source
+    assert 'id="mobileOpenCashflow"' in source
+    assert 'id="mobileCashflowBack"' in source
+    assert '"#cash-flow"' in source
+    assert '["overview","cashflow","activity","more"]' in source
+    assert 'mobileQuery.addEventListener("change",syncMobileShell)' in source
+    assert source.count('location.hash==="#cash-flow"&&matchMedia("(max-width:700px)").matches') == 2
     assert bounds("day", "2026-08-05") == ("2026-08-05", "2026-08-05")
     assert bounds("week", "2026-01-01") == ("2025-12-29", "2026-01-04")
     assert bounds("month", "2024-02-15") == ("2024-02-01", "2024-02-29")
