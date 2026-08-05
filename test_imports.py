@@ -6,7 +6,7 @@ import tempfile
 import zlib
 
 import ingest
-from api.shared import _tangerine_kind, parse_upload
+from api.shared import ApiError, MAX_UPLOAD_BYTES, _tangerine_kind, parse_upload
 
 
 def _fake_scotia_pdf(text):
@@ -75,7 +75,95 @@ def test_csv_detection_and_stable_dedupe():
     assert _tangerine_kind(credit) == "cc"
 
 
+def test_scotia_and_generic_csv_mapping():
+    scotia = (
+        "Date,Amount,Type of Transaction,Description,Sub-description\n"
+        "2026-08-01,-18.25,Debit,TEST CAFE,TORONTO\n"
+        "2026-08-02,50.00,Credit,PAYMENT,\n"
+    ).encode()
+    parsed = parse_upload(scotia, "scotia.csv")
+    assert parsed["institution"] == "Scotiabank"
+    assert len(parsed["transactions"]) == 1
+    assert len(parsed["payments"]) == 1
+
+    generic = (
+        "Posted,Details,Value,Balance\n"
+        "05/08/2026,Corner store,-12.50,987.50\n"
+        "06/08/2026,Payroll,1500.00,2487.50\n"
+    ).encode()
+    try:
+        parse_upload(generic, "new-bank.csv")
+        raise AssertionError("unknown CSV did not request mapping")
+    except ApiError as exc:
+        assert exc.status == 422
+        assert exc.details["mappingRequired"] is True
+        assert exc.details["headers"] == ["Posted", "Details", "Value", "Balance"]
+
+    mapped = parse_upload(generic, "new-bank.csv", mapping={
+        "date": "Posted", "description": "Details", "amount": "Value", "balance": "Balance",
+        "dateFormat": "dmy", "expenseSign": "negative", "accountType": "bank",
+        "account": "Daily Chequing", "institution": "Example Bank",
+    })
+    assert mapped["institution"] == "Example Bank"
+    assert mapped["transactions"][0]["amount"] == 12.5
+    assert mapped["chequing"][0]["amount"] == 1500
+    assert mapped["date_from"] == "2026-08-05"
+
+
+def test_upload_limits_and_validation():
+    try:
+        parse_upload(b"x" * (MAX_UPLOAD_BYTES + 1), "large.csv")
+        raise AssertionError("oversized upload accepted")
+    except ApiError as exc:
+        assert exc.status == 413
+    boundary = b"Date,Description,Amount\n2026-08-05,Boundary,1.00\n"
+    boundary += b"\n" * (MAX_UPLOAD_BYTES - len(boundary))
+    accepted = parse_upload(boundary, "boundary.csv", mapping={
+        "date": "Date", "description": "Description", "amount": "Amount",
+        "accountType": "card", "expenseSign": "positive",
+    })
+    assert accepted["transactions"][0]["amount"] == 1.0
+
+    split_columns = (
+        "When,Memo,Money out,Money in\n"
+        "08/03/2026,Pharmacy,22.75,\n"
+        "08/04/2026,Refund,,7.50\n"
+    ).encode()
+    split = parse_upload(split_columns, "split.csv", mapping={
+        "date": "When", "description": "Memo", "debit": "Money out", "credit": "Money in",
+        "dateFormat": "mdy", "accountType": "bank", "account": "Cash account",
+    })
+    assert len(split["transactions"]) == 1 and len(split["chequing"]) == 1
+    assert split["transactions"][0]["date"] == "2026-08-03"
+
+    overlapping = (
+        "Date,Description,Amount\n"
+        "2026-08-05,Same purchase,9.99\n"
+        "2026-08-05,Same purchase,9.99\n"
+    ).encode()
+    overlap = parse_upload(overlapping, "overlap.csv", mapping={
+        "date": "Date", "description": "Description", "amount": "Amount",
+        "accountType": "card", "expenseSign": "positive",
+    })
+    assert len(overlap["transactions"]) == 2
+    assert len({row["dedupe_key"] for row in overlap["transactions"]}) == 2
+
+    for data, name in ((b"", "empty.csv"), (b"hello", "statement.txt")):
+        try:
+            parse_upload(data, name)
+            raise AssertionError(f"invalid upload accepted: {name}")
+        except ApiError:
+            pass
+    try:
+        parse_upload(b"%PDF-1.4\n/image-only\n%%EOF", "scan.pdf")
+        raise AssertionError("image-only PDF accepted")
+    except ApiError as exc:
+        assert "read" in str(exc).lower() or "transaction" in str(exc).lower()
+
+
 if __name__ == "__main__":
     test_scotia_year_rollover()
     test_csv_detection_and_stable_dedupe()
+    test_scotia_and_generic_csv_mapping()
+    test_upload_limits_and_validation()
     print("PASS - hosted import parsing, rollover, and dedupe")

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-05T05:30:00Z",
+  "title": "Design System: Nhihad's Expense Tracker",
+  "extensions": {
+    "colorMeta": {
+      "midnight-canvas": {"role": "neutral", "displayName": "Midnight Canvas", "canonical": "#051424", "tonalRamp": ["#020a12", "#051424", "#0b2238", "#17364f", "#34556d", "#6f879b", "#b3c1ce", "#edf3f8"]},
+      "violet-action": {"role": "primary", "displayName": "Ledger Violet", "canonical": "#8b5cf6", "tonalRamp": ["#241146", "#3d1d73", "#5830a3", "#7045cd", "#8b5cf6", "#aa8bf9", "#d0bcfc", "#f1ebff"]},
+      "mint-income": {"role": "secondary", "displayName": "Income Mint", "canonical": "#4edea3", "tonalRamp": ["#08291d", "#0d4932", "#16704e", "#269b6d", "#4edea3", "#7ce8bd", "#b7f4da", "#eafcf4"]},
+      "coral-expense": {"role": "tertiary", "displayName": "Expense Coral", "canonical": "#ff7f79", "tonalRamp": ["#3c1010", "#6a2020", "#9d3432", "#d1504b", "#ff7f79", "#ffa9a5", "#ffd1ce", "#fff0ee"]}
+    },
+    "shadows": [
+      {"name": "anchored-lift", "value": "0 18px 48px -24px rgba(0,0,0,.65)", "purpose": "Mobile composer and floating action dock."}
+    ],
+    "motion": [
+      {"name": "ease-out", "value": "cubic-bezier(.22,1,.36,1)", "purpose": "State transitions between 150 and 220 milliseconds."}
+    ],
+    "breakpoints": [
+      {"name": "phone", "value": "640px"},
+      {"name": "tablet", "value": "900px"},
+      {"name": "desktop", "value": "1100px"}
+    ]
+  },
+  "components": [],
+  "narrative": {
+    "northStar": "The Pocket Ledger",
+    "overview": "A precise personal ledger designed to fit in one hand. Financial hierarchy is immediate and every summary remains traceable.",
+    "keyCharacteristics": ["Mobile banking familiarity", "Restrained surfaces", "Traceable summaries", "Responsive state motion"],
+    "rules": [
+      {"name": "Semantic Direction", "body": "Mint and coral always communicate money direction or state.", "section": "colors"},
+      {"name": "Number First", "body": "Financial figures receive weight before scale.", "section": "typography"},
+      {"name": "Flat Ledger", "body": "If every section casts a shadow, hierarchy has failed.", "section": "elevation"}
+    ],
+    "dos": ["Do keep all essential phone actions at least 44 by 44 pixels.", "Do pair category color with an icon and text label."],
+    "donts": ["Don't squeeze desktop tabs into a phone viewport.", "Don't use decorative glass or gradient text."]
+  }
+}

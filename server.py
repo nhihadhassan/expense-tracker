@@ -92,6 +92,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(compute_insights())
             if p == "/api/budgets":
                 return self._json(db.get_budgets(CONN))
+            if p == "/api/manual-entries":
+                return self._json(db.all_manual_entries(CONN))
             if p == "/api/rules":
                 return self._json(db.rules_list(CONN))
         except Exception as e:  # surface errors as JSON
@@ -100,6 +102,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
+            if self.path == "/api/manual-entries":
+                n = int(self.headers.get("Content-Length", 0))
+                data = json.loads(self.rfile.read(n) or b"{}")
+                return self._json(db.create_manual_entry(CONN, data), 201)
             if self.path == "/api/budgets":
                 n = int(self.headers.get("Content-Length", 0))
                 data = json.loads(self.rfile.read(n) or b"{}")
@@ -128,6 +134,30 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"ok": True, "rules": db.rules_list(CONN)})
         except Exception as e:
             return self._json({"error": str(e)}, 500)
+        self._json({"error": "not found"}, 404)
+
+    def do_PATCH(self):
+        try:
+            if self.path.startswith("/api/manual-entries/"):
+                entry_id = self.path.rsplit("/", 1)[-1]
+                n = int(self.headers.get("Content-Length", 0))
+                data = json.loads(self.rfile.read(n) or b"{}")
+                return self._json(db.update_manual_entry(CONN, entry_id, data))
+        except KeyError as exc:
+            return self._json({"error": str(exc)}, 404)
+        except Exception as exc:
+            return self._json({"error": str(exc)}, 400)
+        self._json({"error": "not found"}, 404)
+
+    def do_DELETE(self):
+        try:
+            if self.path.startswith("/api/manual-entries/"):
+                entry_id = self.path.rsplit("/", 1)[-1]
+                if not db.delete_manual_entry(CONN, entry_id):
+                    return self._json({"error": "manual entry not found"}, 404)
+                return self._json({"ok": True})
+        except Exception as exc:
+            return self._json({"error": str(exc)}, 400)
         self._json({"error": "not found"}, 404)
 
     def _ingest_upload(self):

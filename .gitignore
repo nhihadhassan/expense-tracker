@@ -40,6 +40,7 @@ supabase/.temp/
 supabase/migrations/*.sql
 !supabase/migrations/20260701020000_dashboard_admin_imports.sql
 !supabase/migrations/20260701023000_import_dedupe_constraints.sql
+!supabase/migrations/20260805013000_mobile_manual_entries.sql
 
 # Personal launch helpers
 com.expensetracker.server.plist

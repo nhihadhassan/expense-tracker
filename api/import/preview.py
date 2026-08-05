@@ -1,5 +1,6 @@
 import cgi
 import hashlib
+import json
 import urllib.parse
 from http.server import BaseHTTPRequestHandler
 
@@ -42,7 +43,14 @@ class handler(BaseHTTPRequestHandler):
             if prior:
                 raise ApiError("This exact file was already imported", 409)
 
-            parsed = parse_upload(data, item.filename or "statement")
+            mapping = None
+            mapping_raw = form.getvalue("mapping") if "mapping" in form else None
+            if mapping_raw:
+                try:
+                    mapping = json.loads(mapping_raw)
+                except json.JSONDecodeError as exc:
+                    raise ApiError("CSV mapping is not valid JSON") from exc
+            parsed = parse_upload(data, item.filename or "statement", mapping=mapping)
             summary = import_summary(parsed)
             payload = {key: parsed[key] for key in ("transactions", "chequing", "payments", "statements")}
             rows = rest_insert("exp_imports", [{

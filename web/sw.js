@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-tracker-shell-v1";
+const CACHE_NAME = "expense-tracker-shell-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/favicon.svg"];
 
 self.addEventListener("install", event => {
@@ -19,10 +19,9 @@ self.addEventListener("fetch", event => {
   const request = event.request;
   const url = new URL(request.url);
   if(request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  const shellRequest = SHELL.includes(url.pathname);
+  if(!shellRequest) return;
   event.respondWith(
-    fetch(request).then(response => {
-      if(response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    }).catch(() => caches.match(request).then(cached => cached || caches.match("/")))
+    fetch(request).catch(() => caches.match(request).then(cached => cached || caches.match("/")))
   );
 });
