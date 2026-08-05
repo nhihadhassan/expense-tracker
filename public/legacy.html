@@ -1,95 +1,4 @@
-#!/usr/bin/env python3
-"""
-Build a self-contained expense dashboard from Scotiabank Visa e-statement PDFs.
-
-The PDFs store their text in EBCDIC-encoded (cp037) fonts inside FlateDecode
-streams, and the environment has no PDF library installed, so we decode the
-compressed content streams directly with the Python stdlib (zlib + cp037).
-
-Usage:  python3 build_dashboard.py
-Output: expense-dashboard.html  (open it in any browser)
-"""
-
-import json
-import os
-from collections import defaultdict
-
-# All PDF parsing, merchant mapping, FX handling, and analytics live in the
-# shared ingest module (used by the backend too).
-from ingest import parse_dir, load_all, DEFAULT_PDF_DIR
-
-HERE = os.path.dirname(os.path.abspath(__file__))
-OUT_HTML = os.path.join(HERE, "expense-dashboard.html")
-
-
-# --- Reporting --------------------------------------------------------------
-def report(records):
-    total = sum(r["amount"] for r in records)
-    by_cat = defaultdict(lambda: [0, 0.0])
-    uncategorized = []
-    for r in records:
-        by_cat[r["category"]][0] += 1
-        by_cat[r["category"]][1] += r["amount"]
-        if r["category"] == "Other":
-            uncategorized.append(r["merchant"])
-    dates = [r["date"] for r in records]
-    print(f"Parsed {len(records)} spending transactions")
-    print(f"Date range: {min(dates)} -> {max(dates)}")
-    print(f"Total spend: ${total:,.2f}\n")
-    print(f"{'Category':<20}{'Count':>7}{'Total':>14}")
-    print("-" * 41)
-    for cat, (n, amt) in sorted(by_cat.items(), key=lambda kv: -kv[1][1]):
-        print(f"{cat:<20}{n:>7}{'$' + format(amt, ',.2f'):>14}")
-    if uncategorized:
-        print(f"\nUncategorized ('Other') merchants ({len(uncategorized)}):")
-        for m in sorted(set(uncategorized)):
-            print(f"  - {m}")
-
-
-# --- HTML generation --------------------------------------------------------
-def build_html(records, statements, chequing=None, payments=None):
-    html = (HTML_TEMPLATE
-            .replace("/*__DATA__*/", json.dumps(records, separators=(",", ":")))
-            .replace("/*__STATEMENTS__*/", json.dumps(statements, separators=(",", ":")))
-            .replace("/*__CHEQUING__*/", json.dumps(chequing or [], separators=(",", ":")))
-            .replace("/*__PAYMENTS__*/", json.dumps(payments or [], separators=(",", ":")))
-            .replace("/*__SUPA__*/", "null")          # local build: no Supabase
-            .replace("<!--SUPA_SDK-->", ""))
-    with open(OUT_HTML, "w") as f:
-        f.write(html)
-    print(f"\nWrote {OUT_HTML}")
-
-
-# Hosted (Vercel) build: empty baked data, Supabase config + SDK, auth gate active.
-SUPABASE_URL = "https://zgafubhzhxikuknihmnu.supabase.co"
-SUPABASE_ANON = "sb_publishable_HMICK42AzL2W_Tpb6VutDQ_HawfnbWM"
-OWNER_EMAIL = "nhihad.hassan@gmail.com"
-SITE_URL = "https://expense-tracker-sooty-six-38.vercel.app/"   # canonical public URL
-WEB_DIR = os.path.join(HERE, "web")
-SUPA_SDK_TAG = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
-
-
-def build_web():
-    supa = json.dumps({"url": SUPABASE_URL, "key": SUPABASE_ANON,
-                       "email": OWNER_EMAIL, "site": SITE_URL})
-    html = (HTML_TEMPLATE
-            .replace("/*__DATA__*/", "[]").replace("/*__STATEMENTS__*/", "[]")
-            .replace("/*__CHEQUING__*/", "[]").replace("/*__PAYMENTS__*/", "[]")
-            .replace("/*__SUPA__*/", supa)
-            .replace("<!--SUPA_SDK-->", SUPA_SDK_TAG))
-    os.makedirs(WEB_DIR, exist_ok=True)
-    with open(os.path.join(WEB_DIR, "index.html"), "w") as f:
-        f.write(html)
-    # The React shell links to this during the incremental migration so every
-    # established analytics/admin capability stays reachable. It is generated
-    # from the same source, has the same owner auth, and is not a data cache.
-    os.makedirs(os.path.join(HERE, "public"), exist_ok=True)
-    with open(os.path.join(HERE, "public", "legacy.html"), "w") as f:
-        f.write(html)
-    print(f"Wrote {os.path.join(WEB_DIR, 'index.html')} (hosted, auth-gated)")
-
-
-HTML_TEMPLATE = r"""<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -108,7 +17,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
-<!--SUPA_SDK-->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     color-scheme:dark;
@@ -1304,13 +1213,13 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <script>
 // Baked-in fallback data (used when opened as a static file). When served by
 // server.py, the dashboard fetches live data from the API instead. See boot().
-let DATA = /*__DATA__*/;
+let DATA = [];
 let BASE_DATA = DATA.slice();
-let STATEMENTS = /*__STATEMENTS__*/;
-let CHEQUING = /*__CHEQUING__*/;            // Tangerine chequing: cash-flow + balances
-let PAYMENTS = /*__PAYMENTS__*/;            // payments/credits across all cards
+let STATEMENTS = [];
+let CHEQUING = [];            // Tangerine chequing: cash-flow + balances
+let PAYMENTS = [];            // payments/credits across all cards
 let MANUAL_ENTRIES = [];
-const SUPA = /*__SUPA__*/;                  // hosted: {url,key,email}; local: null
+const SUPA = {"url": "https://zgafubhzhxikuknihmnu.supabase.co", "key": "sb_publishable_HMICK42AzL2W_Tpb6VutDQ_HawfnbWM", "email": "nhihad.hassan@gmail.com", "site": "https://expense-tracker-sooty-six-38.vercel.app/"};                  // hosted: {url,key,email}; local: null
 
 // Suggested monthly budgets (≈ rounded from observed monthly averages).
 const DEFAULT_BUDGETS = {
@@ -3488,31 +3397,3 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 </script>
 </body>
 </html>
-"""
-
-
-def report_statements(statements):
-    print(f"\n{'Statement':<12}{'Purchases':>12}{'Payments':>12}{'Interest':>10}{'Balance':>12}")
-    print("-" * 58)
-    for s in statements:
-        print(f"{s['label']:<12}{s['purchases']:>12,.2f}{s['payments']:>12,.2f}"
-              f"{s['interest']:>10,.2f}{s['balance']:>12,.2f}")
-
-
-def main():
-    data = load_all()
-    records, statements, chequing = data["cards"], data["statements"], data["chequing"]
-    payments = data["payments"]
-    report(records)
-    report_statements(statements)
-    if chequing:
-        bal = chequing[-1]["balance"]
-        print(f"\nAccounts: {', '.join(data['accounts'])} + Tangerine Chequing")
-        print(f"Chequing: {len(chequing)} txns, latest balance ${bal:,.2f}")
-    print(f"Payments/credits captured: {len(payments)} (${sum(p['amount'] for p in payments):,.2f})")
-    build_html(records, statements, chequing, payments)
-    build_web()
-
-
-if __name__ == "__main__":
-    main()
