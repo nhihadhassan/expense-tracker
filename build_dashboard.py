@@ -382,6 +382,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .rule-add{display:flex; gap:9px; flex-wrap:wrap; align-items:center}
   .rule-add input, .rule-input{background:var(--panel-2); border:1px solid var(--line); color:var(--text);
     border-radius:9px; padding:8px 10px; font-size:13px}
+  .rule-add select{appearance:none; -webkit-appearance:none; min-height:38px; padding:8px 34px 8px 11px;
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:9px;
+    font-size:13px; cursor:pointer; color-scheme:dark}
+  .rule-add select:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
+  .select-wrap{position:relative; display:inline-flex; align-items:center}
+  .select-wrap::after{content:"expand_more"; position:absolute; right:9px; pointer-events:none;
+    font-family:"Material Symbols Outlined"; font-size:18px; color:var(--muted)}
+  .sub-amt{width:100%; min-width:108px; max-width:185px; text-align:right; font-variant-numeric:tabular-nums}
+  .sub-amt::selection{background:var(--accent); color:#fff}
   #newKw{flex:1.4; min-width:180px} #newDisp{flex:1; min-width:140px}
   .rule-input{width:100%}
   .cat-select, #newCat{background:var(--panel-2); border:1px solid var(--line); color:var(--text);
@@ -1047,10 +1056,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <p class="hint">Auto-detected card subscriptions (✦) plus ones you add yourself — e.g. things paid by e-transfer or on another account. Add what's missing; dismiss anything that isn't really recurring. Saved on this device.</p>
       <div class="recur-kpis" id="recurkpis"></div>
       <div class="rule-add" style="margin-top:16px">
-        <input id="subName" placeholder="Subscription (e.g. Claude)">
-        <input id="subAmount" class="num" type="number" min="0" step="1" placeholder="Amount $">
-        <select id="subCadence"></select>
-        <select id="subCat"></select>
+        <input id="subName" placeholder="Subscription (e.g. Claude)" aria-label="Subscription name">
+        <input id="subAmount" class="num" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Amount $" aria-label="Subscription amount">
+        <span class="select-wrap"><select id="subCadence" aria-label="Billing cadence"></select></span>
+        <span class="select-wrap"><select id="subCat" aria-label="Subscription category"></select></span>
         <button class="btn" id="addSubBtn">+ Add</button>
       </div>
       <div class="tablewrap" style="margin-top:14px">
@@ -1430,6 +1439,7 @@ async function syncPersonalState(){
     personalResponse("Save settings", await sb.from("exp_settings").upsert([
       {key:"income", value:INCOME},
       {key:"dismissed_subs", value:[...DISMISSED]},
+      {key:"subscription_amount_overrides", value:SUB_AMOUNT_OVERRIDES},
       {key:PSTATE_INIT_KEY, value:true},
     ],{onConflict:"key"}));
     const b=loadBudgets();
@@ -1457,18 +1467,20 @@ async function loadPersonalState(){
     // exp_budgets already contains seeded defaults from the original hosted setup;
     // those rows alone must not make the first Phase 1 login look initialized.
     const hasLegacyPersonal=(g.data&&g.data.length) || (s.data&&s.data.length)
-      || ("income" in settings) || ("dismissed_subs" in settings);
+      || ("income" in settings) || ("dismissed_subs" in settings) || ("subscription_amount_overrides" in settings);
     const hasRemote=initialized || hasLegacyPersonal;
     if(hasRemote){
       GOALS=(g.data||[]).map(r=>({name:r.name, target:+r.target||0, saved:+r.saved||0}));
       MANUAL_SUBS=(s.data||[]).map(r=>({name:r.name, amount:+r.amount||0, cadence:r.cadence||"Monthly", category:r.category||"Subscriptions"}));
       INCOME="income" in settings ? Math.max(0, +settings.income||0) : 0;
       DISMISSED=new Set(Array.isArray(settings.dismissed_subs) ? settings.dismissed_subs : []);
+      SUB_AMOUNT_OVERRIDES=(settings.subscription_amount_overrides && typeof settings.subscription_amount_overrides === "object")
+        ? settings.subscription_amount_overrides : {};
       const map={}; (b.data||[]).forEach(r=>{ map[r.category]=+r.monthly||0; });
       try{ localStorage.setItem(BKEY, JSON.stringify(map)); }catch(e){}
       budgets=loadBudgets();
       // mirror to localStorage (PSTATE_READY still false → no echo back to the server)
-      saveGoals(); saveSubs(); saveDismissed();
+      saveGoals(); saveSubs(); saveDismissed(); saveSubscriptionOverrides();
       try{ localStorage.setItem(IKEY, INCOME); }catch(e){}
       PSTATE_READY=true;
       if(!initialized) queuePersonalSave(); // migrate legacy rows to the marked format
@@ -2046,7 +2058,7 @@ function detectRecurring(){
 let RECURRING = [];
 
 // ---- Manual subscriptions + dismissed auto-detects (localStorage + Supabase when hosted) ----
-const SUBKEY="expense-subs-v1", SUBDISKEY="expense-subs-dismissed-v1";
+const SUBKEY="expense-subs-v1", SUBDISKEY="expense-subs-dismissed-v1", SUBOVERRIDEKEY="expense-subs-overrides-v1";
 const DEFAULT_SUBS=[
   {name:"Claude", amount:20, cadence:"Monthly", category:"Subscriptions"},
   {name:"Gas money → parents", amount:70, cadence:"Monthly", category:"Transport"},
@@ -2056,8 +2068,11 @@ const DEFAULT_SUBS=[
 function loadJSON(k,def){ try{ const v=JSON.parse(localStorage.getItem(k)); return v??def; }catch(e){ return def; } }
 let MANUAL_SUBS = loadJSON(SUBKEY, null) || DEFAULT_SUBS.slice();
 let DISMISSED = new Set(loadJSON(SUBDISKEY, []));
+let SUB_AMOUNT_OVERRIDES = loadJSON(SUBOVERRIDEKEY, {});
 function saveSubs(){ try{ localStorage.setItem(SUBKEY, JSON.stringify(MANUAL_SUBS)); }catch(e){} queuePersonalSave(); }
 function saveDismissed(){ try{ localStorage.setItem(SUBDISKEY, JSON.stringify([...DISMISSED])); }catch(e){} queuePersonalSave(); }
+function saveSubscriptionOverrides(){ try{ localStorage.setItem(SUBOVERRIDEKEY, JSON.stringify(SUB_AMOUNT_OVERRIDES)); }catch(e){} queuePersonalSave(); }
+function subscriptionKey(merchant,cadence){ return `${String(merchant||"").trim().toLowerCase()}|${String(cadence||"").trim().toLowerCase()}`; }
 
 function allSubscriptions(){
   const manual = MANUAL_SUBS.map((s,i)=>{
@@ -2069,8 +2084,14 @@ function allSubscriptions(){
   const haveName=new Set(manual.map(m=>m.merchant.toLowerCase()));
   const auto = RECURRING
     .filter(r=>!DISMISSED.has(r.merchant) && !haveName.has(r.merchant.toLowerCase()))
-    .map(r=>({merchant:r.merchant, category:r.category, cadence:r.cadence, amount:r.avg,
-      monthly:r.monthly, annual:r.annual, source:"auto", nextDate:r.nextDate}));
+    .map(r=>{
+      const key=subscriptionKey(r.merchant,r.cadence);
+      const amount=Object.prototype.hasOwnProperty.call(SUB_AMOUNT_OVERRIDES,key)
+        ? Math.max(0,+SUB_AMOUNT_OVERRIDES[key]||0) : r.avg;
+      const per=PER_YEAR[r.cadence]||12;
+      return {merchant:r.merchant, category:r.category, cadence:r.cadence, amount,
+        monthly:amount*per/12, annual:amount*per, source:"auto", nextDate:r.nextDate, overrideKey:key};
+    });
   return [...manual, ...auto].sort((a,b)=>b.annual-a.annual);
 }
 
@@ -2234,22 +2255,30 @@ function renderRecurring(){
   $("recurtable").style.display=""; $("recurempty").style.display="none";
   tb.innerHTML=subs.map(r=>{
     const tag=`<span class="tag"><span class="dot" style="background:${CAT_COLORS[r.category]||'#999'}"></span>${esc(r.merchant)}${r.source==="auto"?' <span class="badge low" title="auto-detected from your cards">✦ auto</span>':''}</span>`;
+    const amountInput=`<input class="goal-input sub-amt" type="number" min="0" step="0.01" inputmode="decimal"
+      aria-label="Amount for ${esc(r.merchant)}" value="${Number(r.amount||0).toFixed(2)}">`;
     if(r.source==="manual"){
       return `<tr data-i="${r.idx}">
         <td>${tag}</td>
         <td>${r.cadence}</td>
-        <td class="amt"><input class="goal-input sub-amt" type="number" min="0" step="1" value="${r.amount}"></td>
+        <td class="amt">${amountInput}</td>
         <td class="amt">${fmt(r.monthly)}</td><td class="amt">${fmt(r.annual)}</td>
         <td><button class="icon-btn sub-del" title="Remove">🗑</button></td></tr>`;
     }
-    return `<tr>
-      <td>${tag}</td><td>${r.cadence}</td><td class="amt">${fmt(r.amount)}</td>
+    return `<tr data-sub-key="${esc(r.overrideKey)}">
+      <td>${tag}</td><td>${r.cadence}</td><td class="amt">${amountInput}</td>
       <td class="amt">${fmt(r.monthly)}</td><td class="amt">${fmt(r.annual)}</td>
       <td><button class="btn sub-dismiss" data-m="${esc(r.merchant).replace(/"/g,'&quot;')}" style="padding:4px 10px;font-size:12px">Dismiss</button></td></tr>`;
   }).join("");
   tb.querySelectorAll(".sub-amt").forEach(inp=>inp.onchange=()=>{
-    const tr=inp.closest("tr"); MANUAL_SUBS[+tr.dataset.i].amount=Math.max(0,+inp.value||0);
-    saveSubs(); refreshSubs(); });
+    const tr=inp.closest("tr"), amount=Math.max(0,+inp.value||0);
+    if(tr.dataset.i!==undefined){ MANUAL_SUBS[+tr.dataset.i].amount=amount; saveSubs(); }
+    else if(tr.dataset.subKey){
+      if(amount>0) SUB_AMOUNT_OVERRIDES[tr.dataset.subKey]=amount;
+      else delete SUB_AMOUNT_OVERRIDES[tr.dataset.subKey];
+      saveSubscriptionOverrides();
+    }
+    refreshSubs(); });
   tb.querySelectorAll(".sub-del").forEach(b=>b.onclick=()=>{
     MANUAL_SUBS.splice(+b.closest("tr").dataset.i,1); saveSubs(); refreshSubs(); });
   tb.querySelectorAll(".sub-dismiss").forEach(b=>b.onclick=()=>{
