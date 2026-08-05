@@ -9,6 +9,8 @@ logic stays in one place.
 
 import os
 import sqlite3
+import uuid
+from datetime import date, datetime, timezone
 
 import ingest
 
@@ -45,14 +47,28 @@ CREATE TABLE IF NOT EXISTS budgets(category TEXT PRIMARY KEY, monthly REAL);
 CREATE TABLE IF NOT EXISTS goals(
   id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, target REAL, saved REAL
 );
+CREATE TABLE IF NOT EXISTS manual_entries(
+  id TEXT PRIMARY KEY,
+  entry_type TEXT NOT NULL CHECK(entry_type IN ('expense','income')),
+  date TEXT NOT NULL,
+  amount REAL NOT NULL CHECK(amount > 0),
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  account TEXT NOT NULL DEFAULT 'Manual',
+  note TEXT NOT NULL DEFAULT '',
+  currency TEXT NOT NULL DEFAULT 'CAD',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_txn_date ON transactions(date);
 CREATE INDEX IF NOT EXISTS idx_txn_cat ON transactions(category);
 CREATE INDEX IF NOT EXISTS idx_txn_acct ON transactions(account);
+CREATE INDEX IF NOT EXISTS idx_manual_entries_date ON manual_entries(date);
 """
 
 DEFAULT_BUDGETS = {
-    "Entertainment": 700, "Travel": 400, "Food & Dining": 300, "Subscriptions": 120,
-    "Groceries": 150, "Shopping": 100, "Health & Pharmacy": 60, "Transport": 40,
+    "Entertainment": 700, "Travel": 400, "Eating out": 300, "Subscriptions": 120,
+    "Food": 150, "Shopping": 100, "Health": 60, "Transport": 40,
     "Giving": 50, "Fees & Interest": 80,
 }
 
@@ -61,7 +77,28 @@ def connect(path=DB_PATH):
     conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
+    _migrate_categories(conn)
     return conn
+
+
+def _migrate_categories(conn):
+    """Apply the three unambiguous category renames without losing saved budgets."""
+    aliases = {
+        "Food & Dining": "Eating out",
+        "Groceries": "Food",
+        "Health & Pharmacy": "Health",
+    }
+    for old, new in aliases.items():
+        conn.execute("UPDATE transactions SET category=? WHERE category=?", (new, old))
+        conn.execute("UPDATE rules SET category=? WHERE category=?", (new, old))
+        old_budget = conn.execute(
+            "SELECT monthly FROM budgets WHERE category=?", (old,)).fetchone()
+        if old_budget:
+            conn.execute(
+                "INSERT INTO budgets(category,monthly) VALUES(?,?) "
+                "ON CONFLICT(category) DO NOTHING", (new, old_budget["monthly"]))
+            conn.execute("DELETE FROM budgets WHERE category=?", (old,))
+    conn.commit()
 
 
 def seed_rules(conn):
@@ -230,6 +267,85 @@ def set_budget(conn, category, monthly):
     conn.execute("INSERT INTO budgets(category,monthly) VALUES(?,?) "
                  "ON CONFLICT(category) DO UPDATE SET monthly=excluded.monthly", (category, monthly))
     conn.commit()
+
+
+def _manual_values(data, existing=None):
+    current = dict(existing or {})
+    merged = {**current, **(data or {})}
+    entry_type = str(merged.get("entry_type") or "").strip().lower()
+    if entry_type not in ("expense", "income"):
+        raise ValueError("entry_type must be expense or income")
+    iso_date = str(merged.get("date") or "").strip()
+    date.fromisoformat(iso_date)
+    amount = round(float(merged.get("amount") or 0), 2)
+    if amount <= 0:
+        raise ValueError("amount must be greater than zero")
+    name = str(merged.get("name") or "").strip()
+    category = str(merged.get("category") or "").strip()
+    if not name:
+        raise ValueError("name is required")
+    if not category:
+        raise ValueError("category is required")
+    now = datetime.now(timezone.utc).isoformat()
+    return {
+        "id": str(merged.get("id") or uuid.uuid4()),
+        "entry_type": entry_type,
+        "date": iso_date,
+        "amount": amount,
+        "name": name[:160],
+        "category": category[:80],
+        "account": str(merged.get("account") or "Manual").strip()[:120] or "Manual",
+        "note": str(merged.get("note") or "").strip()[:500],
+        "currency": str(merged.get("currency") or "CAD").strip().upper()[:3] or "CAD",
+        "created_at": current.get("created_at") or now,
+        "updated_at": now,
+    }
+
+
+def all_manual_entries(conn):
+    return [dict(row) for row in conn.execute(
+        "SELECT id,entry_type,date,amount,name,category,account,note,currency,created_at,updated_at "
+        "FROM manual_entries ORDER BY date DESC,created_at DESC")]
+
+
+def get_manual_entry(conn, entry_id):
+    row = conn.execute(
+        "SELECT id,entry_type,date,amount,name,category,account,note,currency,created_at,updated_at "
+        "FROM manual_entries WHERE id=?", (entry_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def create_manual_entry(conn, data):
+    entry = _manual_values(data)
+    conn.execute(
+        "INSERT INTO manual_entries"
+        "(id,entry_type,date,amount,name,category,account,note,currency,created_at,updated_at) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        tuple(entry[key] for key in (
+            "id", "entry_type", "date", "amount", "name", "category", "account", "note",
+            "currency", "created_at", "updated_at")))
+    conn.commit()
+    return entry
+
+
+def update_manual_entry(conn, entry_id, data):
+    existing = get_manual_entry(conn, entry_id)
+    if not existing:
+        raise KeyError("manual entry not found")
+    entry = _manual_values({**(data or {}), "id": entry_id}, existing)
+    conn.execute(
+        "UPDATE manual_entries SET entry_type=?,date=?,amount=?,name=?,category=?,account=?,note=?,"
+        "currency=?,updated_at=? WHERE id=?",
+        (entry["entry_type"], entry["date"], entry["amount"], entry["name"], entry["category"],
+         entry["account"], entry["note"], entry["currency"], entry["updated_at"], entry_id))
+    conn.commit()
+    return get_manual_entry(conn, entry_id)
+
+
+def delete_manual_entry(conn, entry_id):
+    cur = conn.execute("DELETE FROM manual_entries WHERE id=?", (entry_id,))
+    conn.commit()
+    return bool(cur.rowcount)
 
 
 def bootstrap(path=DB_PATH):

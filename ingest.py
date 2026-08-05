@@ -34,6 +34,16 @@ MONTHS = {m: i for i, m in enumerate(
 
 MERCHANT_FIELD_WIDTH = 25
 
+CATEGORY_MIGRATIONS = {
+    "Food & Dining": "Eating out",
+    "Groceries": "Food",
+    "Health & Pharmacy": "Health",
+}
+
+
+def canonical_category(category):
+    return CATEGORY_MIGRATIONS.get(category, category)
+
 # keyword (in upper-cased 25-char field) -> (display name, category).
 # Ordered most-specific first; first match wins. Seeds the DB rules table.
 MERCHANTS = [
@@ -274,7 +284,7 @@ def resolve(details, rules=None, width=MERCHANT_FIELD_WIDTH):
     up = field.upper()
     for kw, name, cat in (rules or MERCHANTS):
         if kw in up:
-            return name, cat
+            return name, canonical_category(cat)
     # fallback "Other": trim a trailing "  CITY PROV" so the display stays tidy
     clean = re.sub(r"\s+[A-Z][A-Za-z]+\s+[A-Z]{2}\s*$", "", field).strip() or field
     return clean[:32], "Other"
@@ -387,6 +397,88 @@ def parse_dir(pdf_dir=DEFAULT_PDF_DIR, rules=None):
     txns.sort(key=lambda r: (r["date"], r["merchant"]))
     stmts.sort(key=lambda s: s["date"])
     return txns, stmts
+
+
+def parse_scotia_activity_md(path, rules=None, account="Scotiabank Visa"):
+    """Parse a normalized Scotiabank current-activity Markdown table.
+
+    The current-activity export has no stable transaction reference, so the
+    normalized writer assigns occurrence-safe sequential references.
+    Refunds/payments are intentionally omitted from spending records.
+    """
+    out, seen = [], {}
+    for cells in _md_rows(path):
+        if len(cells) < 4:
+            continue
+        d = cells[0].strip()
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+            continue
+        desc = cells[1].strip()
+        direction = cells[2].strip()
+        try:
+            amount = float(re.sub(r"[^0-9.]", "", cells[3]))
+        except ValueError:
+            continue
+        if amount <= 0 or direction != "Debit":
+            continue
+        merchant, category = resolve(desc, rules, width=None)
+        base = f"{d}|{desc}|{amount:.2f}"
+        i = seen.get(base, 0)
+        seen[base] = i + 1
+        out.append({
+            "date": d, "merchant": merchant, "raw": desc,
+            "amount": round(amount, 2), "category": category,
+            "ref": f"{base}#{i}", "source": os.path.basename(path),
+            "field": desc, "account": account, "account_type": "card",
+        })
+    return out
+
+
+def parse_scotia_csv(path, rules=None, existing=None, account="Scotiabank Visa"):
+    """Parse Scotiabank's full activity CSV, retaining only new debits.
+
+    The export has no transaction ID. Existing rows are matched by date,
+    amount, and occurrence count, which handles minor merchant-description
+    differences while preserving genuine same-day duplicate purchases.
+    """
+    existing_counts = {}
+    for r in existing or []:
+        key = (r["date"], round(float(r["amount"]), 2))
+        existing_counts[key] = existing_counts.get(key, 0) + 1
+    seen_csv = {}
+    out, credits = [], []
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            d = (row.get("Date") or "").strip()
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+                continue
+            try:
+                amount = round(abs(float((row.get("Amount") or "0").strip())), 2)
+            except ValueError:
+                continue
+            if amount <= 0:
+                continue
+            primary_desc = re.sub(r"\s+", " ", (row.get("Description") or "").strip()).strip()
+            desc = re.sub(r"\s+", " ", " ".join(
+                x.strip() for x in (row.get("Description"), row.get("Sub-description")) if x and x.strip()
+            )).strip()
+            merchant, category = resolve(primary_desc, rules, width=None)
+            key = (d, amount)
+            occurrence = seen_csv.get(key, 0)
+            seen_csv[key] = occurrence + 1
+            if (row.get("Type of Transaction") or "").strip().lower() == "credit":
+                credits.append({"date": d, "amount": amount, "account": account})
+                continue
+            if occurrence < existing_counts.get(key, 0):
+                continue
+            out.append({
+                "date": d, "merchant": merchant, "raw": desc,
+                "amount": amount, "category": category,
+                "ref": f"{d}|{desc}|{amount:.2f}#{occurrence}",
+                "source": os.path.basename(path), "field": desc,
+                "account": account, "account_type": "card",
+            })
+    return out, credits
 
 
 # Back-compat thin wrappers used by build_dashboard.py
@@ -674,6 +766,14 @@ def load_all(scotia_dir=DEFAULT_PDF_DIR, tangerine_dir=TANGERINE_DIR,
              amex_dir=AMEX_DIR, bmo_dir=BMO_DIR, rules=None):
     """Unified multi-account load → {cards, chequing, statements, accounts, payments}."""
     cards, statements = parse_dir(scotia_dir, rules)
+    activity_md = os.path.join(scotia_dir, "July 2026 account activity.md")
+    if os.path.exists(activity_md):
+        cards += parse_scotia_activity_md(activity_md, rules)
+    activity_csv = os.path.join(scotia_dir, "Scotiabank_Passport_Visa_Infinite__Card_7283_080426.csv")
+    scotia_csv_credits = []
+    if os.path.exists(activity_csv):
+        new_cards, scotia_csv_credits = parse_scotia_csv(activity_csv, rules, existing=cards)
+        cards += new_cards
     for r in cards:
         r.setdefault("account", "Scotiabank Visa")
         r["account_type"] = "card"
@@ -697,6 +797,7 @@ def load_all(scotia_dir=DEFAULT_PDF_DIR, tangerine_dir=TANGERINE_DIR,
     accounts = sorted({r["account"] for r in cards})
     # Payments/credits across all cards (the money paid toward the cards)
     payments = _scotia_payments(scotia_dir)
+    payments += scotia_csv_credits
     if os.path.exists(cc):
         payments += _tangerine_cc_payments(cc)
     for f in sorted(glob.glob(os.path.join(amex_dir, "*.csv"))):

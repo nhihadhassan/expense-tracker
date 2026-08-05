@@ -66,14 +66,14 @@ def main():
                for a in alld["accounts"]}
     if by_acct.get("Tangerine Mastercard") != 18389.62:
         fails.append(f"Tangerine CC total wrong: {by_acct.get('Tangerine Mastercard')}")
-    if by_acct.get("Scotiabank Visa") != 9606.56:
+    if by_acct.get("Scotiabank Visa") != 15021.40:
         fails.append(f"Scotiabank total wrong: {by_acct.get('Scotiabank Visa')}")
-    if by_acct.get("Amex") != 11536.11:
+    if by_acct.get("Amex") != 16212.26:
         fails.append(f"Amex total wrong: {by_acct.get('Amex')}")
     if by_acct.get("BMO Mastercard") != 3145.24:
         fails.append(f"BMO total wrong: {by_acct.get('BMO Mastercard')}")
     combined = round(sum(by_acct.values()), 2)
-    if combined != 42677.53:
+    if combined != 52768.52:
         fails.append(f"combined card total wrong: {combined}")
     # income classification: primary income < all non-internal deposits (transfers excluded)
     chq_all = alld["chequing"]
@@ -95,7 +95,7 @@ def main():
     if other / combined > 0.10:
         fails.append(f"low categorization coverage: {other/combined*100:.1f}% Other")
     chq = alld["chequing"]
-    if not chq or chq[-1]["balance"] != 998.61:
+    if not chq or chq[-1]["balance"] != 776.76:
         fails.append(f"chequing balance wrong: {chq[-1]['balance'] if chq else None}")
 
     # 9) Backend DB sync stores every account + chequing and reconciles to the static load
