@@ -744,6 +744,35 @@
   @media(max-width:350px){.composer-categories{grid-template-columns:repeat(2,1fr)}.mobile-period{padding:11px}.money-action span:last-child{font-size:12px}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto !important;transition-duration:.01ms !important;animation-duration:.01ms !important}}
 
+  /* Stitch: Obsidian Wealth system. The account faces retain their dedicated card palette;
+     the surrounding shell uses the shared emerald, coral, and obsidian tokens. */
+  :root{
+    --bg:#0b1326; --panel:#171f33; --panel-2:#222a3d;
+    --line:rgba(187,202,191,.16); --line-strong:rgba(187,202,191,.30);
+    --text:#dae2fd; --muted:#bbcabf; --soft:#86948a;
+    --accent:#10b981; --accent-strong:#4edea3;
+    --danger:#ff9996; --warning:#facc15; --success:#4edea3;
+    --focus:0 0 0 3px rgba(78,222,163,.28);
+  }
+  body{background:var(--bg); font-family:"Inter",sans-serif}
+  .sb-nav a.active{color:#d8ffe9; background:rgba(16,185,129,.18); box-shadow:0 0 18px rgba(16,185,129,.16)}
+  .sb-brand{color:var(--accent-strong)}
+  .sb-brand .sb-logo{background:linear-gradient(135deg,#3b82f6,#4edea3); color:#061b18}
+  .ptab.active,.chip.active{background:linear-gradient(135deg,#10b981,#4edea3); color:#003824; box-shadow:0 8px 20px -8px rgba(16,185,129,.55)}
+  .btn.primary{background:linear-gradient(135deg,#2563eb,#3b82f6); border-color:transparent; box-shadow:0 10px 24px -12px rgba(59,130,246,.75)}
+  .hero-card{border-top-color:var(--accent); box-shadow:0 26px 60px -32px rgba(16,185,129,.38)}
+  .hero-balance{font-family:"JetBrains Mono","Inter",sans-serif; text-shadow:0 0 22px rgba(78,222,163,.22)}
+  .hero-label,.field label,.lbl,.card th,.label,.hstat-label{font-family:"JetBrains Mono","Inter",sans-serif; letter-spacing:.08em}
+  .mobile-period-btn.active{background:#10b981; color:#003824}
+  .mobile-nav-btn.active{color:var(--accent-strong); background:rgba(16,185,129,.14)}
+  .fun-card{background:linear-gradient(120deg,rgba(16,185,129,.20),rgba(59,130,246,.12)); border-color:rgba(78,222,163,.24)}
+  .fun-card h3{color:var(--accent-strong)}
+  .up-ic,.scard .sc-ic{background:rgba(16,185,129,.14); color:var(--accent-strong)}
+  .money-action.income{background:var(--accent-strong)}
+  .money-action.expense,.composer-save.expense{background:#ff7f79}
+  .card,.controls,.mobile-period,.mobile-cashflow,.mobile-category-list,.mobile-activity-row,.mobile-more-btn{border-color:rgba(187,202,191,.16)}
+  html[data-theme="light"]{--accent:#059669; --accent-strong:#047857; --success:#047857}
+
 </style>
 </head>
 <body>
