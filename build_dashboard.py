@@ -978,7 +978,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="stitch-cards" id="stitchCards" data-tab="dashboard"></div>
 
   <!-- Accounts: wallet cards + upcoming payments -->
-  <div class="wallet-strip" id="walletStrip" data-tab="accounts"></div>
+  <div class="wallet-strip" id="walletStrip" data-tab="dashboard accounts"></div>
   <div class="card upcoming-card" id="upcomingCard" data-tab="accounts">
     <h2>Upcoming payments</h2>
     <p class="hint">Next expected charges from your detected &amp; manual subscriptions.</p>
@@ -1575,7 +1575,7 @@ function showTab(name){
   if(!PAGE_ORDER.includes(name)) name="dashboard";
   showAppView("dashboard");                       // leave the Admin view if we're in it
   DASH_PREF.activeTab=name; queueDashboardPrefSave();
-  document.querySelectorAll("[data-tab]").forEach(el=>el.classList.toggle("tab-off", el.dataset.tab!==name));
+  document.querySelectorAll("[data-tab]").forEach(el=>el.classList.toggle("tab-off", !el.dataset.tab.split(/\s+/).includes(name)));
   document.querySelectorAll("#pagetabs [data-page], #sidebar .sb-nav a[data-page]")
     .forEach(b=>{
       const active=b.dataset.page===name;
