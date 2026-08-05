@@ -716,6 +716,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .mobile-screen{max-width:680px; margin:0 auto}
   .mobile-titlebar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 0 16px}
   .mobile-titlebar h2{margin:0; font-size:20px}
+  .mobile-titlebar .btn{min-height:44px}
   .mobile-title-group{display:flex; align-items:center; gap:10px; min-width:0}.mobile-title-copy{min-width:0}.mobile-title-copy h2{margin:0}
   .mobile-eyebrow{margin:0 0 2px; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase}
   .mobile-back{width:44px;height:44px;flex:0 0 44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);display:grid;place-items:center;cursor:pointer}
@@ -2860,9 +2861,11 @@ function initMobileShell(){
   document.querySelectorAll("[data-open-page]").forEach(button=>button.onclick=()=>showMobileView("legacy",button.dataset.openPage));
   $("mobileTheme").onclick=()=>$("themeToggle").click();$("mobileExport").onclick=()=>$("export").click();
   document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("entryComposer").classList.contains("open"))closeComposer();});
-  window.addEventListener("popstate",()=>{if(matchMedia("(max-width:700px)").matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");});
-  if(matchMedia("(max-width:700px)").matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");
-  window.addEventListener("resize",()=>{if(!matchMedia("(max-width:700px)").matches)document.body.classList.remove("mobile-custom");});
+  const mobileQuery=matchMedia("(max-width:700px)");
+  const syncMobileShell=event=>{if(event.matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");else document.body.classList.remove("mobile-custom");};
+  window.addEventListener("popstate",()=>{if(mobileQuery.matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");});
+  if(mobileQuery.addEventListener)mobileQuery.addEventListener("change",syncMobileShell);else mobileQuery.addListener(syncMobileShell);
+  if(mobileQuery.matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");
 }
 
 // ---- Data source: live backend API if available, else baked-in fallback ----
@@ -3331,7 +3334,8 @@ async function boot(){
   $("rulesCard").style.display = LIVE ? "" : "none";
   if(LIVE){ $("subtitle").dataset.live="1"; renderRules(); }
   applyData();
-  if(location.hash==="#admin") showAppView("admin");
+  if(location.hash==="#cash-flow"&&matchMedia("(max-width:700px)").matches) showMobileView("cashflow");
+  else if(location.hash==="#admin") showAppView("admin");
   else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
   else showTab(DASH_PREF.activeTab||"dashboard");
 }
@@ -3399,7 +3403,8 @@ async function afterLogin(session){
   LIVE=false;                                  // hosted v1: rules editor/upload hidden
   $("uploadWrap").style.display="none"; $("rulesCard").style.display="none";
   applyData();
-  if(location.hash==="#admin") showAppView("admin");
+  if(location.hash==="#cash-flow"&&matchMedia("(max-width:700px)").matches) showMobileView("cashflow");
+  else if(location.hash==="#admin") showAppView("admin");
   else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
   else showTab(DASH_PREF.activeTab||"dashboard");
   // small sign-out control in the header

@@ -173,6 +173,8 @@ Desktop uses the existing sidebar and page tabs. Phones use a four-destination b
 
 The donut is a control as well as a chart. Its center always shows cash in, cash out, and net. A selected segment updates the category detail below without removing the core totals. Every segment has a keyboard-accessible equivalent in the category list.
 
+Cash flow lives on a dedicated mobile child page rather than inside the Overview landing screen. Overview provides a compact period summary and a clearly labelled route into Cash flow. The child page owns timeframe navigation, the donut, category focus, and transaction drill-down; it preserves the bottom navigation and money-entry dock, and uses a conventional back control plus the `#cash-flow` deep link.
+
 ## Do's and Don'ts
 
 ### Do:
