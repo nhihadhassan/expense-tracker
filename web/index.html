@@ -536,18 +536,18 @@
   .scard b{color:var(--text)}
 
   /* Accounts: wallet cards */
-  .wallet-strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:22px}
+  .wallet-strip{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-bottom:22px}
   .wallet-strip:empty{display:none}
-  .wallet-card{position:relative; overflow:hidden; border-radius:18px; padding:20px; min-height:150px;
+  .wallet-card{position:relative; overflow:hidden; border-radius:22px; padding:22px 24px; min-height:198px;
     display:flex; flex-direction:column; justify-content:space-between; color:#fff;
-    border:1px solid rgba(255,255,255,.14); box-shadow:0 16px 34px -20px rgba(0,0,0,.7)}
+    border:1px solid rgba(255,255,255,.20); box-shadow:0 16px 34px -20px rgba(0,0,0,.7)}
   .wallet-card::after{content:""; position:absolute; top:-40px; right:-30px; width:120px; height:120px;
     background:rgba(255,255,255,.14); filter:blur(30px); border-radius:50%}
   .wallet-card .wc-top{display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:1}
-  .wallet-card .wc-name{font-size:14px; font-weight:700; letter-spacing:.02em}
+  .wallet-card .wc-name{font-size:16px; font-weight:750; letter-spacing:.01em}
   .wallet-card .wc-kind{font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; opacity:.85}
-  .wallet-card .wc-chip{width:30px; height:22px; border-radius:5px; background:rgba(255,255,255,.35)}
-  .wallet-card .wc-amt{font-size:26px; font-weight:800; font-family:"Montserrat",sans-serif; position:relative; z-index:1;
+  .wallet-card .wc-chip{width:48px; height:36px; border-radius:8px; background:rgba(255,255,255,.36)}
+  .wallet-card .wc-amt{font-size:34px; font-weight:800; font-family:"Montserrat",sans-serif; position:relative; z-index:1;
     font-variant-numeric:tabular-nums}
   .wallet-card .wc-meta{font-size:11.5px; opacity:.85; position:relative; z-index:1; display:flex; justify-content:space-between}
 
@@ -591,11 +591,13 @@
   @media(max-width:900px){ .hero-right{align-items:stretch; width:100%} .hero-stats{flex-wrap:wrap} .hstat{flex:1} }
 
   /* wallet cards — richer Stitch-style face */
-  .wallet-card .wc-net{font-size:12px; font-weight:800; letter-spacing:.04em; opacity:.95}
-  .wallet-card .wc-digits{position:relative; z-index:1; font-family:"JetBrains Mono","Inter",monospace; letter-spacing:.18em; font-size:13px; opacity:.9; margin-top:2px}
+  .wallet-card .wc-net{font-size:12px; font-weight:800; letter-spacing:.08em; opacity:.95}
+  .wallet-card .wc-digits{position:relative; z-index:1; font-family:"JetBrains Mono","Inter",monospace; letter-spacing:.18em; font-size:14px; opacity:.9; margin-top:5px}
   .wallet-card .wc-util{position:relative; z-index:1; height:5px; border-radius:5px; background:rgba(255,255,255,.25); overflow:hidden; margin-top:8px}
   .wallet-card .wc-util > i{display:block; height:100%; background:#fff; border-radius:5px}
   .wallet-card .wc-line{position:relative; z-index:1; display:flex; justify-content:space-between; font-size:11px; opacity:.9; margin-top:6px}
+  @media(max-width:1120px) and (min-width:701px){.wallet-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .mobile-wallet-strip{display:none}
 
   /* panel header collapse toggle (no admin needed) */
   .card h2{display:flex; align-items:center; gap:8px}
@@ -629,6 +631,17 @@
   .mobile-screen{max-width:680px; margin:0 auto}
   .mobile-titlebar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 0 16px}
   .mobile-titlebar h2{margin:0; font-size:20px}
+  .mobile-title-group{display:flex; align-items:center; gap:10px; min-width:0}.mobile-title-copy{min-width:0}.mobile-title-copy h2{margin:0}
+  .mobile-eyebrow{margin:0 0 2px; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase}
+  .mobile-back{width:44px;height:44px;flex:0 0 44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);display:grid;place-items:center;cursor:pointer}
+  .mobile-overview-ledger{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px 16px;margin-bottom:14px}
+  .mobile-overview-ledger h3{margin:2px 0 16px;font-size:18px}.mobile-overview-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .mobile-overview-total{min-width:0;padding:12px 10px;border-radius:14px;background:var(--panel-2)}.mobile-overview-total span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.mobile-overview-total b{display:block;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+  .mobile-overview-total.in b{color:var(--success)}.mobile-overview-total.out b,.mobile-overview-total.net.negative b{color:var(--danger)}.mobile-overview-total.net.positive b{color:var(--success)}
+  html[data-theme="light"] .mobile-overview-total.in b,html[data-theme="light"] .mobile-overview-total.net.positive b{color:#067647}
+  .mobile-cashflow-link{width:100%;min-height:52px;margin-top:14px;padding:0 14px;border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--accent) 11%,var(--panel));color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;cursor:pointer;font-weight:750}
+  .mobile-cashflow-link .material-symbols-outlined{color:var(--accent-strong)}
+  .mobile-overview-note{margin:0;padding:14px 4px;color:var(--muted);font-size:13px;line-height:1.5}
   .mobile-period{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:14px; margin-bottom:16px}
   .mobile-period-modes{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px}
   .mobile-period-btn{min-width:0; min-height:44px; padding:8px 4px; border:1px solid transparent; border-radius:11px;
@@ -722,6 +735,10 @@
     .money-dock{left:50%;right:auto;bottom:calc(68px + env(safe-area-inset-bottom));transform:translateX(-50%);width:calc(100% - 24px);max-width:420px;justify-content:space-between;padding:6px}
     .money-action{flex:1;justify-content:center;min-height:48px;padding:0 10px}.entry-composer{width:100%;border-left:0}.composer-body{padding-inline:14px}
     .mobile-period-modes{grid-template-columns:repeat(3,1fr)}.mobile-donut-wrap{min-height:290px}.mobile-donut-wrap canvas{height:290px !important}.composer-categories{grid-template-columns:repeat(3,1fr)}
+    .mobile-wallet-strip{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; margin:0 -12px 16px; padding:0 12px 3px; scrollbar-width:none}
+    .mobile-wallet-strip::-webkit-scrollbar{display:none}
+    .mobile-wallet-strip .wallet-card{flex:0 0 min(86vw,340px); min-height:184px; scroll-snap-align:start; padding:20px}
+    .mobile-wallet-strip .wallet-card .wc-amt{font-size:30px}
   }
   @media(max-width:350px){.composer-categories{grid-template-columns:repeat(2,1fr)}.mobile-period{padding:11px}.money-action span:last-child{font-size:12px}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto !important;transition-duration:.01ms !important;animation-duration:.01ms !important}}
@@ -780,6 +797,23 @@
   <main id="dashboardView">
   <section class="mobile-screen active" id="mobileOverview" data-mobile-screen="overview">
     <div class="mobile-titlebar"><h2>Overview</h2><button class="btn" id="mobileImport" type="button">Import</button></div>
+    <div class="mobile-wallet-strip" id="mobileWalletStrip" aria-label="Accounts"></div>
+    <section class="mobile-overview-ledger" aria-labelledby="mobileOverviewPeriod">
+      <p class="mobile-eyebrow">Current selection</p><h3 id="mobileOverviewPeriod">Cash flow</h3>
+      <div class="mobile-overview-totals">
+        <div class="mobile-overview-total in"><span>Cash in</span><b id="mobileOverviewCashIn">$0</b></div>
+        <div class="mobile-overview-total out"><span>Cash out</span><b id="mobileOverviewCashOut">$0</b></div>
+        <div class="mobile-overview-total net" id="mobileOverviewNetWrap"><span>Net</span><b id="mobileOverviewNet">$0</b></div>
+      </div>
+      <button class="mobile-cashflow-link" id="mobileOpenCashflow" type="button"><span><b>Open cash flow</b><br><span class="category-meta">Categories, percentages, and transactions</span></span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
+    </section>
+    <p class="mobile-overview-note">Use Activity for individual transactions, or open Cash flow to explore where this period's money went.</p>
+  </section>
+  <section class="mobile-screen" id="mobileCashFlow" data-mobile-screen="cashflow">
+    <div class="mobile-titlebar">
+      <div class="mobile-title-group"><button class="mobile-back" id="mobileCashflowBack" type="button" aria-label="Back to Overview"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span></button><div class="mobile-title-copy"><p class="mobile-eyebrow">Overview</p><h2>Cash flow</h2></div></div>
+      <button class="btn" id="mobileCashflowImport" type="button">Import</button>
+    </div>
     <div class="mobile-period">
       <div class="mobile-period-modes" id="mobilePeriodModes">
         <button class="mobile-period-btn" data-mode="day">Day</button><button class="mobile-period-btn" data-mode="week">Week</button>
@@ -2051,7 +2085,9 @@ function renderWalletCards(){
       <div class="wc-line"><span>${CHEQUING.length} transactions</span><span>current balance</span></div>
     </div>`);
   }
-  strip.innerHTML=cards.join("");
+  const html=cards.join("");
+  strip.innerHTML=html;
+  const mobileStrip=$("mobileWalletStrip"); if(mobileStrip) mobileStrip.innerHTML=html;
 }
 
 function renderInsightsExtras(){
@@ -2608,11 +2644,14 @@ function selectedMobileData(){
 }
 function renderMobile(){ renderMobileOverview(); renderMobileActivity(); }
 function renderMobileOverview(){
-  const target=$("mobileOverview"); if(!target) return; initMobileRange();
+  const target=$("mobileCashFlow"); if(!target) return; initMobileRange();
   document.querySelectorAll("#mobilePeriodModes [data-mode]").forEach(button=>button.classList.toggle("active",button.dataset.mode===MOBILE_RANGE.mode));
   $("mobileCustomRange").hidden=MOBILE_RANGE.mode!=="custom"; $("mobilePeriodLabel").textContent=mobileRangeLabel();
   const {expenses,income}=selectedMobileData(); const cashOut=expenses.reduce((sum,row)=>sum+(+row.amount||0),0);
   const cashIn=income.reduce((sum,row)=>sum+(+row.amount||0),0), net=cashIn-cashOut;
+  $("mobileOverviewPeriod").textContent=mobileRangeLabel();$("mobileOverviewCashIn").textContent=fmt0(cashIn);$("mobileOverviewCashOut").textContent=fmt0(cashOut);
+  $("mobileOverviewNet").textContent=`${net<0?'-':''}${fmt0(Math.abs(net))}`;$("mobileOverviewNetWrap").classList.toggle("negative",net<0);$("mobileOverviewNetWrap").classList.toggle("positive",net>=0);
+  if(!target.classList.contains("active")) return;
   $("mobileDonutCenter").innerHTML=`<div class="mobile-cash-row in"><span>Cash in</span><b>${fmt0(cashIn)}</b></div>
     <div class="mobile-cash-row out"><span>Cash out</span><b>${fmt0(cashOut)}</b></div>
     <div class="mobile-cash-row mobile-net"><span>Net</span><b class="${net>=0?'good':'bad'}">${net<0?'-':''}${fmt0(Math.abs(net))}</b></div>`;
@@ -2654,10 +2693,18 @@ function renderMobileActivity(){
   list.querySelectorAll("[data-manual-id]").forEach(row=>{row.onclick=()=>openComposer(null,row.dataset.manualId);row.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();row.click();}};});
 }
 function showMobileView(name,page){
-  const custom=["overview","activity","more"].includes(name); document.body.classList.toggle("mobile-custom",custom);
+  const custom=["overview","cashflow","activity","more"].includes(name); document.body.classList.toggle("mobile-custom",custom);
   document.querySelectorAll("[data-mobile-screen]").forEach(screen=>screen.classList.toggle("active",custom&&screen.dataset.mobileScreen===name));
-  document.querySelectorAll("[data-mobile-nav]").forEach(button=>button.classList.toggle("active",button.dataset.mobileNav===name||(name==="legacy"&&button.dataset.mobileNav==="more")));
+  document.querySelectorAll("[data-mobile-nav]").forEach(button=>button.classList.toggle("active",button.dataset.mobileNav===name||(name==="cashflow"&&button.dataset.mobileNav==="overview")||(name==="legacy"&&button.dataset.mobileNav==="more")));
   if(name==="plans") showTab("budgets"); else if(name==="legacy") showTab(page||"accounts"); else {showAppView("dashboard");renderMobile();window.scrollTo({top:0,behavior:"smooth"});}
+}
+function openMobileCashflow(){
+  if(location.hash!=="#cash-flow")history.pushState({mobileView:"cashflow"},"","#cash-flow");
+  showMobileView("cashflow");
+}
+function closeMobileCashflow(){
+  if(location.hash==="#cash-flow"&&history.state?.mobileView==="cashflow")history.back();
+  else{history.replaceState(null,"",location.pathname+location.search);showMobileView("overview");}
 }
 function showToast(message,kind){
   const toast=$("appToast"); toast.textContent=message; toast.dataset.kind=kind||""; toast.classList.add("show");
@@ -2713,7 +2760,7 @@ async function deleteManualEntry(){
 }
 function initMobileShell(){
   if(MOBILE_SHELL_READY)return;MOBILE_SHELL_READY=true;initMobileRange();
-  document.querySelectorAll("[data-mobile-nav]").forEach(button=>button.onclick=()=>showMobileView(button.dataset.mobileNav));
+  document.querySelectorAll("[data-mobile-nav]").forEach(button=>button.onclick=()=>{if(location.hash==="#cash-flow")history.replaceState(null,"",location.pathname+location.search);showMobileView(button.dataset.mobileNav);});
   document.querySelectorAll("[data-entry-type]").forEach(button=>button.onclick=()=>openComposer(button.dataset.entryType));
   document.querySelectorAll("#mobilePeriodModes [data-mode]").forEach(button=>button.onclick=()=>{MOBILE_RANGE.mode=button.dataset.mode;MOBILE_SELECTED_CAT=null;renderMobile();});
   $("mobilePeriodPrev").onclick=()=>shiftMobileRange(-1);$("mobilePeriodNext").onclick=()=>shiftMobileRange(1);
@@ -2723,11 +2770,13 @@ function initMobileShell(){
   $("calculatorPad").innerHTML=keys.map(key=>`<button type="button" class="calc-key ${/[÷×+\-]/.test(key)?'operator':''}" data-key="${key}">${key}</button>`).join("")+`<button type="button" class="calc-key operator" data-key="=" style="grid-column:1/-1">=</button>`;
   $("calculatorPad").querySelectorAll("[data-key]").forEach(button=>button.onclick=()=>{const key=button.dataset.key;if(key==="⌫")COMPOSER.expression=COMPOSER.expression.length>1?COMPOSER.expression.slice(0,-1):"0";else if(key==="=")COMPOSER.expression=String(calcExpression(COMPOSER.expression));else if(/[÷×+\-]/.test(key)&&/[÷×+\-]$/.test(COMPOSER.expression))COMPOSER.expression=COMPOSER.expression.slice(0,-1)+key;else COMPOSER.expression=COMPOSER.expression==="0"&&!/[.÷×+\-]/.test(key)?key:COMPOSER.expression+key;renderCalculator();});
   const openImport=()=>{showAppView("admin");setTimeout(()=>$("importSection")?.scrollIntoView({behavior:"smooth"}),80);};
-  $("mobileImport").onclick=openImport;$("mobileActivityImport").onclick=openImport;$("mobileOpenAdmin").onclick=openImport;
+  $("mobileImport").onclick=openImport;$("mobileCashflowImport").onclick=openImport;$("mobileActivityImport").onclick=openImport;$("mobileOpenAdmin").onclick=openImport;
+  $("mobileOpenCashflow").onclick=openMobileCashflow;$("mobileCashflowBack").onclick=closeMobileCashflow;
   document.querySelectorAll("[data-open-page]").forEach(button=>button.onclick=()=>showMobileView("legacy",button.dataset.openPage));
   $("mobileTheme").onclick=()=>$("themeToggle").click();$("mobileExport").onclick=()=>$("export").click();
   document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("entryComposer").classList.contains("open"))closeComposer();});
-  if(matchMedia("(max-width:700px)").matches)showMobileView("overview");
+  window.addEventListener("popstate",()=>{if(matchMedia("(max-width:700px)").matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");});
+  if(matchMedia("(max-width:700px)").matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");
   window.addEventListener("resize",()=>{if(!matchMedia("(max-width:700px)").matches)document.body.classList.remove("mobile-custom");});
 }
 
