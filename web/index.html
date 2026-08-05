@@ -28,7 +28,7 @@
     --danger:#ff9d94; --warning:#facc15; --success:#4edea3;
     --focus:0 0 0 3px rgba(139,92,246,.35);
     --radius:18px; --radius-sm:12px;
-    --glass:rgba(28,43,60,.45);
+    --glass:var(--panel);
     --ease-out:cubic-bezier(.22,1,.36,1);
   }
   html[data-theme="light"]{
@@ -36,25 +36,20 @@
     --bg:#f4f7fb; --panel:#ffffff; --panel-2:#edf2f8;
     --line:rgba(20,35,55,.12); --line-strong:rgba(20,35,55,.22);
     --text:#172033; --muted:#5d6b7e; --soft:#718096;
-    --glass:rgba(255,255,255,.72);
+    --glass:var(--panel);
     /* dark-mode danger/warning/success are pale, low-contrast tones meant to sit on a
        dark panel; on white they read as washed-out text, so use deeper, WCAG-friendlier
        shades here. Accent/purple stays the same — it's a brand color, not a status color. */
     --danger:#d92d20; --warning:#b54708; --success:#0e9f6e;
   }
-  html[data-theme="light"] body{
-    background:
-      radial-gradient(1100px 620px at 12% -6%, rgba(139,92,246,.12), transparent 46%),
-      radial-gradient(900px 560px at 96% 6%, rgba(78,222,163,.12), transparent 44%),
-      linear-gradient(180deg,#eef2ff,var(--bg) 340px);
-  }
+  html[data-theme="light"] body{background:var(--bg)}
   html[data-theme="light"] .field select{color-scheme:light}
   html[data-theme="light"] #sidebar{background:rgba(255,255,255,.85)}
   html[data-theme="light"] .sb-nav a.active{color:#5b21b6; background:rgba(139,92,246,.14); box-shadow:none}
   /* .hero-card's base gradient fades to a translucent navy meant to blend into a dark
      page; over a light page that reads as a muddy gray-purple wash, so light mode gets
      an opaque gradient instead (wallet cards are already opaque and need no fix). */
-  html[data-theme="light"] .hero-card{background:linear-gradient(120deg,#6d28d9,#8b5cf6 62%)}
+  html[data-theme="light"] .hero-card{background:var(--panel); border-top-color:#6d28d9}
   html[data-theme="light"] .hero-label,
   html[data-theme="light"] .hero-trend{color:rgba(255,255,255,.82)}
   html[data-theme="light"] .hero-trend.up{color:#fecaca}
@@ -85,11 +80,7 @@
   input,select,button{font:inherit}
   body{
     margin:0; font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:
-      radial-gradient(1100px 620px at 12% -6%, rgba(139,92,246,.16), transparent 46%),
-      radial-gradient(900px 560px at 96% 6%, rgba(78,222,163,.10), transparent 44%),
-      linear-gradient(180deg,#071a2e, var(--bg) 340px);
-    background-attachment:fixed;
+    background:var(--bg);
     color:var(--text); -webkit-font-smoothing:antialiased;
   }
   .wrap{max-width:1180px; margin:0 auto; padding:30px 22px 60px}
@@ -144,7 +135,7 @@
   .panel-node.is-collapsed.kpis{display:flex; align-items:center; justify-content:space-between;
     background:var(--panel); border:1px solid var(--line); border-radius:var(--radius)}
   .panel-node.is-collapsed.kpis::before{content:"Summary metrics"; font-size:15px; font-weight:650}
-  .panel-restore{margin-left:auto; min-height:32px; padding:6px 10px}
+  .panel-restore{margin-left:auto; min-height:44px; padding:8px 12px}
   .chartbox{position:relative; height:300px}
   .chartbox.tall{height:340px}
 
@@ -247,7 +238,7 @@
   .insight b{color:var(--text)}
   .insight .sub{color:var(--muted); font-size:12.5px; margin-top:2px}
   .insight-body{min-width:0; flex:1}
-  .insight-dismiss{margin-left:auto; flex:0 0 32px; width:32px; height:32px; padding:0}
+  .insight-dismiss{margin-left:auto; flex:0 0 44px; width:44px; height:44px; padding:0}
 
   /* admin workspace */
   [hidden]{display:none !important}
@@ -262,14 +253,14 @@
   .admin-section h3{margin:0 0 5px; font-size:15px}
   .admin-section .hint{margin:0 0 14px; color:var(--muted); font-size:12.5px; line-height:1.45}
   .admin-list{display:flex; flex-direction:column; gap:8px}
-  .admin-panel-row{display:grid; grid-template-columns:34px minmax(0,1fr) 128px 118px 34px 34px; gap:8px;
+  .admin-panel-row{display:grid; grid-template-columns:44px minmax(0,1fr) 128px 118px 44px 44px; gap:8px;
     align-items:center; padding:9px; background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius-sm)}
   .admin-panel-row.dragging{opacity:.45}
   .drag-handle{cursor:grab; color:var(--muted)}
   .admin-panel-name{min-width:0; font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .admin-state{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--text);
     border-radius:var(--radius-sm); padding:7px 8px; font-size:12.5px}
-  .admin-icon{width:34px; height:34px; min-height:34px; padding:0}
+  .admin-icon{width:44px; height:44px; min-height:44px; padding:0}
   .dismissed-row,.import-history-row{display:flex; align-items:center; justify-content:space-between; gap:12px;
     padding:10px 0; border-bottom:1px solid var(--line); font-size:13px}
   .dismissed-row:last-child,.import-history-row:last-child{border-bottom:0}
@@ -361,7 +352,7 @@
 
   /* drag & drop upload overlay */
   #dropzone{position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center;
-    background:rgba(15,17,23,.86); backdrop-filter:blur(3px)}
+    background:color-mix(in srgb, var(--bg) 94%, transparent)}
   #dropzone.show{display:flex}
   #dropzone .dz-box{border:2.5px dashed var(--accent); border-radius:20px; padding:60px 90px;
     text-align:center; background:rgba(124,92,255,.07)}
@@ -372,7 +363,7 @@
 
   /* auth gate (hosted only) */
   #authgate{position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center;
-    background:radial-gradient(900px 500px at 50% -10%, #20243200, #0f1117), var(--bg); padding:20px}
+    background:var(--bg); padding:20px}
   #authgate.show{display:flex}
   .auth-box{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:36px 32px;
     width:100%; max-width:400px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.4)}
@@ -405,7 +396,7 @@
     .acct-chip{width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis}
     .kpis{grid-template-columns:1fr}
     .admin-head{align-items:flex-start; flex-direction:column}
-    .admin-panel-row{grid-template-columns:34px minmax(0,1fr) 104px 104px 34px}
+    .admin-panel-row{grid-template-columns:44px minmax(0,1fr) 104px 104px 44px}
     .admin-panel-row [data-down]{display:none}
     .preview-kpis{grid-template-columns:1fr 1fr}
     .card{padding:15px}
@@ -438,15 +429,11 @@
     font-size:22px; line-height:1; display:inline-block; -webkit-font-feature-settings:'liga'; letter-spacing:normal;
   }
   /* glassmorphism on the card family */
-  .card,.kpi,.recur-kpi,.controls,.preview-kpi,.admin-section,.import-drop{
-    background:var(--glass); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
-  }
+  .card,.kpi,.recur-kpi,.controls,.preview-kpi,.admin-section,.import-drop{background:var(--panel)}
   .card,.controls,.admin-section{border-radius:20px}
   .kpi,.recur-kpi{border-radius:16px}
-  .card{transition:transform .25s var(--ease-out),box-shadow .25s var(--ease-out),background .25s var(--ease-out);
-    box-shadow:0 14px 34px -22px rgba(0,0,0,.7)}
-  .card:hover{transform:translateY(-3px); background:rgba(28,43,60,.62);
-    box-shadow:0 22px 44px -22px rgba(139,92,246,.4)}
+  .card{transition:border-color .2s var(--ease-out),box-shadow .2s var(--ease-out)}
+  .card:hover{border-color:var(--line-strong); box-shadow:0 12px 28px -24px rgba(0,0,0,.7)}
   .card h2{font-size:16px}
   .kpi .value{font-size:26px}
   /* keep scrollable table + sticky header crisp (no blur bleed) */
@@ -454,15 +441,15 @@
   th{background:var(--panel)}
   /* pill buttons + gradient primary */
   .btn{border-radius:999px}
-  .btn.primary{background:linear-gradient(135deg,#8b5cf6,#a855f7); border-color:transparent; color:#fff;
-    box-shadow:0 8px 20px -8px rgba(139,92,246,.65)}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:oklch(98% .006 286);
+    box-shadow:0 8px 20px -8px rgba(139,92,246,.5)}
   .btn.primary:hover{filter:brightness(1.08); border-color:transparent}
   .chip.active{background:linear-gradient(135deg,#8b5cf6,#a855f7); border-color:transparent; color:#fff}
 
   /* left sidebar (desktop) */
   #sidebar{display:none; position:fixed; left:0; top:0; height:100vh; width:250px; z-index:40;
     flex-direction:column; gap:6px; padding:22px 16px;
-    background:rgba(13,28,45,.72); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+    background:var(--panel);
     border-right:1px solid var(--line)}
   .sb-brand{display:flex; align-items:center; gap:11px; font-weight:800; font-size:20px;
     color:var(--success); padding:4px 8px 18px}
@@ -480,14 +467,9 @@
 
   /* hero balance card */
   .hero-card{position:relative; overflow:hidden; border-radius:24px; padding:30px 32px; margin-bottom:22px;
-    background:linear-gradient(120deg, rgba(87,27,193,.36), rgba(28,43,60,.5) 62%);
-    border:1px solid var(--line); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--accent);
     display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;
     box-shadow:0 26px 60px -32px rgba(139,92,246,.6)}
-  .hero-card::before{content:""; position:absolute; top:-90px; right:-60px; width:260px; height:260px;
-    background:rgba(139,92,246,.35); filter:blur(80px); border-radius:50%}
-  .hero-card::after{content:""; position:absolute; bottom:-100px; left:-40px; width:240px; height:240px;
-    background:rgba(78,222,163,.16); filter:blur(80px); border-radius:50%}
   .hero-main{position:relative; z-index:1; min-width:0}
   .hero-label{margin:0 0 8px; text-transform:uppercase; letter-spacing:.14em; font-size:12px; color:var(--muted)}
   .hero-balance{margin:0; font-size:46px; line-height:1; font-weight:800; color:#fff;
@@ -513,7 +495,7 @@
   /* ===================== Tabbed pages ===================== */
   .tab-off{display:none !important}
   .pagetabs{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 20px; padding:6px;
-    background:var(--glass); backdrop-filter:blur(18px); border:1px solid var(--line); border-radius:999px}
+    background:var(--panel); border:1px solid var(--line); border-radius:14px}
   .ptab{display:inline-flex; align-items:center; gap:8px; border:none; cursor:pointer;
     background:transparent; color:var(--muted); font-size:14px; font-weight:650; font-family:"Inter",sans-serif;
     padding:10px 18px; border-radius:999px; transition:background .2s,color .2s,box-shadow .2s}
@@ -522,20 +504,19 @@
   .ptab.active{color:#fff; background:linear-gradient(135deg,#8b5cf6,#a855f7);
     box-shadow:0 8px 20px -8px rgba(139,92,246,.6)}
   @media(max-width:640px){
-    .pagetabs{border-radius:16px; overflow-x:auto; flex-wrap:nowrap}
-    .ptab{white-space:nowrap; padding:10px 14px}
-    .ptab span:not(.material-symbols-outlined){display:none}
-    .ptab .material-symbols-outlined{font-size:22px}
+    .pagetabs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border-radius:16px; overflow:visible}
+    .ptab{min-height:44px; justify-content:center; white-space:normal; padding:10px 8px; text-align:center}
+    .ptab .material-symbols-outlined{font-size:20px}
   }
 
   /* Stitch tip / fun-fact callout cards (Dashboard) */
   .stitch-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:22px}
   .stitch-cards:empty{display:none}
   .scard{position:relative; overflow:hidden; border-radius:20px; padding:20px 22px;
-    background:var(--glass); backdrop-filter:blur(18px); border:1px solid var(--line);
-    border-left:4px solid var(--accent); display:flex; gap:14px; align-items:flex-start}
-  .scard.mint{border-left-color:var(--success)}
-  .scard.gold{border-left-color:var(--warning)}
+    background:var(--panel); border:1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+    display:flex; gap:14px; align-items:flex-start}
+  .scard.mint{border-color:color-mix(in srgb, var(--success) 42%, var(--line))}
+  .scard.gold{border-color:color-mix(in srgb, var(--warning) 42%, var(--line))}
   .scard .sc-ic{flex:0 0 42px; width:42px; height:42px; border-radius:12px; display:flex; align-items:center;
     justify-content:center; background:rgba(139,92,246,.16); color:var(--accent)}
   .scard.mint .sc-ic{background:rgba(78,222,163,.16); color:var(--success)}
@@ -608,7 +589,7 @@
 
   /* panel header collapse toggle (no admin needed) */
   .card h2{display:flex; align-items:center; gap:8px}
-  .panel-toggle{margin-left:auto; flex:0 0 auto; width:28px; height:28px; border-radius:8px; cursor:pointer;
+  .panel-toggle{margin-left:auto; flex:0 0 auto; width:44px; height:44px; border-radius:8px; cursor:pointer;
     background:transparent; border:1px solid var(--line); color:var(--muted); font-size:12px; line-height:1;
     transition:color .2s,border-color .2s,background .2s}
   .panel-toggle:hover{color:var(--text); border-color:var(--accent)}
