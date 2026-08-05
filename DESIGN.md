@@ -81,6 +81,29 @@ The interface should feel like opening a precise personal ledger that happens to
 
 The system rejects generic fintech decoration and copied finance-app styling. Its personality comes from clear numbers, quiet midnight surfaces, one violet action color, and semantic mint and coral only when money direction matters.
 
+## React implementation context
+
+The interface is implemented as a React and TypeScript application. React owns screen composition, navigation state, accessible dialogs, local interaction state, and optimistic UI. It does not own financial parsing or persistence: those remain in the existing Python API layer and Supabase owner-scoped tables. This keeps statement-import and duplicate-protection rules in one trusted place while allowing each screen to be maintained as a focused component.
+
+### Component boundaries
+
+- `AppShell` owns authentication-aware layout and responsive navigation.
+- `OverviewPage` owns the period summary and route into cash flow.
+- `CashFlowPage` owns timeframe controls, donut selection, category drill-down, and the cash-in/cash-out/net hierarchy.
+- `ActivityPage` owns the chronological feed and entry editing entry point.
+- `EntryComposer` is a full-screen mobile dialog and desktop side panel.
+- `ImportPage` owns the existing preview, mapping, duplicate, and commit workflow through the import API; files never enter persistent browser state.
+
+### Responsive rules
+
+- From 320px through 767px, use one content column, a four-item bottom bar, and a safe-area-aware money-entry dock. No horizontal scrolling is allowed.
+- At 768px and above, navigation may become a sidebar and the entry composer becomes a side panel; data controls remain keyboard reachable.
+- Every action is at least 44px in its smallest dimension. Dialogs lock page scroll only while open and respect `prefers-reduced-motion`.
+
+### Tokens and icon treatment
+
+The CSS custom properties in this document remain the source for semantic colors, radius, spacing, and motion. UI motion stays between 150 and 220ms. Category icons are inline outlined SVG React components with a consistent 1.8 stroke and a text label; neither emoji nor color alone communicates meaning.
+
 **Key Characteristics:**
 
 - Mobile banking familiarity with personal-dashboard depth.

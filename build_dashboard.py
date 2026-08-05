@@ -80,6 +80,12 @@ def build_web():
     os.makedirs(WEB_DIR, exist_ok=True)
     with open(os.path.join(WEB_DIR, "index.html"), "w") as f:
         f.write(html)
+    # The React shell links to this during the incremental migration so every
+    # established analytics/admin capability stays reachable. It is generated
+    # from the same source, has the same owner auth, and is not a data cache.
+    os.makedirs(os.path.join(HERE, "public"), exist_ok=True)
+    with open(os.path.join(HERE, "public", "legacy.html"), "w") as f:
+        f.write(html)
     print(f"Wrote {os.path.join(WEB_DIR, 'index.html')} (hosted, auth-gated)")
 
 

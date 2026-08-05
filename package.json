@@ -1,0 +1,42 @@
+{
+  "name": "expense-tracker",
+  "version": "1.0.0",
+  "description": "A local-first, private personal-finance dashboard that parses bank and credit-card statements — **Scotiabank, Tangerine, Amex, and BMO** — into one unified view with budgets, recurring-charge detection, anomaly alerts, and spending forecasts. Everything runs on your machine — no accounts, no cloud, no data leaves your computer.",
+  "scripts": {
+    "dev": "vite",
+    "build": "python3 build_dashboard.py && tsc -b && vite build",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nhihadhassan/expense-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/nhihadhassan/expense-tracker/issues"
+  },
+  "homepage": "https://github.com/nhihadhassan/expense-tracker#readme",
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@supabase/supabase-js": "^2.112.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "jsdom": "^30.0.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.10"
+  }
+}
