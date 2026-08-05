@@ -289,15 +289,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .filterbar{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin:-6px 0 18px; min-height:0}
   .filterbar.empty{display:none}
   .filterbar .lbl, .accountbar .lbl{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px}
-  .accountbar{display:none; align-items:center; gap:10px; flex-wrap:wrap; margin:-4px 0 16px}
+  .accountbar{display:none; align-items:center; gap:10px; flex-wrap:wrap; margin:-4px 0 16px; width:100%; min-width:0}
   .accountbar.has-accounts{display:flex}
-  #accountchips{display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0}
+  #accountchips{display:flex; align-items:center; gap:8px; flex:1 1 0; width:0; min-width:0; max-width:100%; flex-wrap:wrap}
   .acct-chip{display:inline-flex; align-items:center; gap:7px; background:var(--panel-2); border:1px solid var(--line);
     color:var(--muted); border-radius:999px; padding:8px 13px; min-height:40px; font-size:12.5px; cursor:pointer;
     max-width:100%; white-space:nowrap;
     transition:border-color .18s var(--ease-out), color .18s var(--ease-out), opacity .18s var(--ease-out), transform .18s var(--ease-out)}
   .acct-chip .dot{width:9px;height:9px;flex:0 0 9px}
-  .acct-chip .acct-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .acct-chip .acct-name{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis}
   .acct-chip .acct-total{flex:0 0 auto}
   .acct-chip.on{color:var(--text); border-color:var(--accent)}
   .acct-chip.off{opacity:.5}
