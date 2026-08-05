@@ -45,9 +45,11 @@ def run():
     assert 'id="mobileOpenCashflow"' in source
     assert 'id="mobileCashflowBack"' in source
     assert '"#cash-flow"' in source
+    assert 'data-cashflow-page' in source
+    assert 'function showCashflowPage()' in source
     assert '["overview","cashflow","activity","more"]' in source
     assert 'mobileQuery.addEventListener("change",syncMobileShell)' in source
-    assert source.count('location.hash==="#cash-flow"&&matchMedia("(max-width:700px)").matches') == 2
+    assert source.count('if(location.hash==="#cash-flow") showCashflowPage();') == 2
     assert bounds("day", "2026-08-05") == ("2026-08-05", "2026-08-05")
     assert bounds("week", "2026-01-01") == ("2025-12-29", "2026-01-04")
     assert bounds("month", "2024-02-15") == ("2024-02-01", "2024-02-29")
