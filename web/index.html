@@ -205,6 +205,18 @@
   .btn.primary{background:var(--accent); border-color:var(--accent); color:oklch(98% .006 286)}
   .header-row{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; padding-bottom:10px}
   .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-left:auto}
+  .profile-switch{display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:0 12px;
+    border:1px solid var(--line); border-radius:999px; background:var(--panel-2); color:var(--text); cursor:pointer}
+  .profile-switch:hover{border-color:var(--line-strong)}
+  .profile-switch .material-symbols-outlined{font-size:19px; color:var(--muted)}
+  .profile-switch select{border:0; background:transparent; color:inherit; font-size:13px; font-weight:700;
+    cursor:pointer; padding:0; min-width:0}
+  body.guest-profile .money-dock{display:none}
+  .guest-banner{display:none; align-items:center; gap:10px; margin:0 0 14px; padding:10px 14px;
+    border:1px solid var(--line-strong); border-radius:12px; background:var(--panel-2);
+    color:var(--muted); font-size:13px}
+  body.guest-profile .guest-banner{display:flex}
+  .guest-banner b{color:var(--text)}
 
   button:focus-visible, input:focus-visible, select:focus-visible, .acct-chip:focus-visible,
   .fchip .x:focus-visible, .cal-cell:focus-visible, th:focus-visible{
@@ -935,12 +947,21 @@
         <input type="file" id="uploadInput" accept="application/pdf" multiple hidden>
         <button class="btn" id="uploadBtn">Add statement</button>
       </span>
+      <label class="profile-switch" id="profileSwitchWrap">
+        <span class="material-symbols-outlined" aria-hidden="true">switch_account</span>
+        <select id="profileSwitch" aria-label="Switch user"></select>
+      </label>
       <button class="btn view-nav active" id="dashboardNav" type="button">Dashboard</button>
       <button class="btn view-nav" id="adminNav" type="button">Admin</button>
       <button class="btn theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to light theme"><span class="material-symbols-outlined" aria-hidden="true">dark_mode</span><span class="sr-only">Switch theme</span></button>
       <button class="btn primary" id="export">Export CSV</button>
     </div>
   </header>
+
+  <div class="guest-banner" id="guestBanner">
+    <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+    <span>Viewing <b id="guestBannerName">a shared profile</b> — read-only. Switch back to your own profile to add or edit entries.</span>
+  </div>
 
   <main id="dashboardView">
   <section class="mobile-screen active" id="mobileOverview" data-mobile-screen="overview">
@@ -1387,6 +1408,7 @@ const CAT_ICONS={
 const KPI_ACCENTS = ["#7c5cff","#22b8cf","#51cf66","#ff922b"];
 const CATS = EXPENSE_CATEGORIES;
 let LIVE = false;                                     // true when served by the backend API
+let LIVE_BACKEND = false;                             // the owner's real data source, remembered across profile switches
 let PROJECTED_MONTHLY = 0;                             // typical monthly spend (set by renderForecast)
 function catSelect(selected, cls, attrs){
   return `<select class="${cls}" ${attrs||""}>`+CATS.map(c=>
@@ -2460,6 +2482,7 @@ function refreshSubs(){ renderRecurring(); }
 // ---- Projected spending: recurring scheduled forward + variable run-rate ----
 function renderForecast(){
   const months=[...new Set(DATA.map(r=>r.date.slice(0,7)))].sort();
+  if(!months.length){ PROJECTED_MONTHLY=0; return; }   // nothing to project from (empty profile)
   const actual=months.map(m=>DATA.filter(r=>r.date.slice(0,7)===m).reduce((a,r)=>a+r.amount,0));
   // recurring monthly total
   const recurMonthly=RECURRING.reduce((a,r)=>a+r.monthly,0);
@@ -3052,6 +3075,7 @@ function openComposer(type,entryId){
 function closeComposer(){ $("entryComposer").classList.remove("open");$("entryComposer").setAttribute("aria-hidden","true");document.body.style.overflow=""; }
 async function saveManualEntry(){
   if(ENTRY_SAVING)return;
+  if(ACTIVE_PROFILE!=="owner"){showToast("This profile is read-only.","err");return;}
   const amount=calcExpression(COMPOSER.expression), name=$("entryName").value.trim(), date=$("entryDate").value;
   const allowed=COMPOSER.type==="income"?INCOME_CATEGORIES:EXPENSE_CATEGORIES;
   if(!Number.isFinite(amount)||amount<=0){showToast("Enter an amount greater than zero.","err");return;}
@@ -3070,6 +3094,7 @@ async function saveManualEntry(){
   finally{ENTRY_SAVING=false; $("saveEntry").disabled=false;}
 }
 async function deleteManualEntry(){
+  if(ACTIVE_PROFILE!=="owner"){showToast("This profile is read-only.","err");return;}
   if(!COMPOSER.id||!confirm("Delete this manual entry?"))return;const id=COMPOSER.id,original=MANUAL_ENTRIES.map(row=>({...row}));MANUAL_ENTRIES=MANUAL_ENTRIES.filter(row=>row.id!==id);mergeManualData();renderMobile();closeComposer();
   try{if(sb&&CURRENT_USER){const {error}=await sb.from("exp_manual_entries").delete().eq("id",id);if(error)throw error;}else{const response=await fetch(`/api/manual-entries/${encodeURIComponent(id)}`,{method:"DELETE"});if(!response.ok)throw new Error("Could not delete entry");}render();showToast("Entry deleted.");}
   catch(error){MANUAL_ENTRIES=original;mergeManualData();render();renderMobile();showToast(error.message||"Could not delete entry.","err");}
@@ -3119,6 +3144,86 @@ async function loadBackend(){
   return false;
 }
 
+// ---- Profiles: the owner's live data, plus read-only bundled datasets ----
+// A bundled profile is a JSON file under ./data/ shaped like:
+//   { "name":"Rachel", "title":"Rachel's Expense Tracker",
+//     "transactions":[{date,merchant,raw,field,amount,category,account,account_type}],
+//     "chequing":[{date,desc,amount,kind,balance,internal,dep_type,is_income,account}],
+//     "payments":[{date,amount,account}],
+//     "statements":[{source,date,label,purchases,payments,interest,balance,limit,available,due}],
+//     "manual_entries":[] }
+const PROFILES=[
+  {id:"owner",  name:"Nhihad", title:"Nhihad's Expense Tracker", source:"live"},
+  {id:"rachel", name:"Rachel", title:"Rachel's Expense Tracker", source:"./data/rachel.json"},
+];
+const PROFILE_KEY="expense-active-profile";
+let ACTIVE_PROFILE="owner";
+let OWNER_SNAPSHOT=null;                       // live data parked while a guest profile is shown
+const PROFILE_CACHE={};
+
+function profileById(id){ return PROFILES.find(p=>p.id===id)||PROFILES[0]; }
+function snapshotData(){ return {BASE_DATA,CHEQUING,PAYMENTS,STATEMENTS,MANUAL_ENTRIES}; }
+function restoreData(s){
+  BASE_DATA=s.BASE_DATA||[]; CHEQUING=s.CHEQUING||[]; PAYMENTS=s.PAYMENTS||[];
+  STATEMENTS=s.STATEMENTS||[]; MANUAL_ENTRIES=s.MANUAL_ENTRIES||[];
+}
+async function fetchProfileData(profile){
+  if(PROFILE_CACHE[profile.id]) return PROFILE_CACHE[profile.id];
+  const response=await fetch(profile.source,{cache:"no-cache"});
+  if(!response.ok) throw new Error(`${profile.name}'s data is not available yet.`);
+  const raw=await response.json();
+  const data={
+    BASE_DATA:raw.transactions||[], CHEQUING:(raw.chequing||[]).map(r=>({...r, desc:r.desc||r.descr})),
+    PAYMENTS:raw.payments||[], STATEMENTS:raw.statements||[], MANUAL_ENTRIES:raw.manual_entries||[],
+  };
+  PROFILE_CACHE[profile.id]=data; return data;
+}
+async function switchProfile(id){
+  const profile=profileById(id);
+  if(profile.id===ACTIVE_PROFILE) return;
+  if(profile.source==="live"){
+    if(OWNER_SNAPSHOT) restoreData(OWNER_SNAPSHOT);
+    OWNER_SNAPSHOT=null;
+  } else {
+    if(!OWNER_SNAPSHOT) OWNER_SNAPSHOT=snapshotData();
+    try{ restoreData(await fetchProfileData(profile)); }
+    catch(err){
+      showToast(err.message||"Could not load that profile.","err");
+      $("profileSwitch").value=ACTIVE_PROFILE; return;
+    }
+  }
+  ACTIVE_PROFILE=profile.id;
+  try{ localStorage.setItem(PROFILE_KEY, profile.id); }catch(e){}
+  applyProfileChrome(profile);
+  MOBILE_SELECTED_CAT=null;
+  applyData();
+  renderMobile();
+  showToast(`Now viewing ${profile.name}'s data.`);
+}
+function applyProfileChrome(profile){
+  const guest=profile.source!=="live";
+  document.body.classList.toggle("guest-profile",guest);
+  document.querySelector(".header-row h1").textContent=profile.title;
+  document.title=profile.title;
+  $("guestBannerName").textContent=profile.name;
+  $("profileSwitch").value=profile.id;
+  LIVE = guest ? false : LIVE_BACKEND;          // guests never get inline category editing
+}
+// options render as soon as the page is wired; the saved profile is only
+// restored once real data has loaded (see initProfiles)
+function renderProfileOptions(){
+  const select=$("profileSwitch"); if(!select) return;
+  select.innerHTML=PROFILES.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("");
+  select.value=ACTIVE_PROFILE;
+  select.onchange=()=>switchProfile(select.value);
+}
+function initProfiles(){
+  renderProfileOptions();
+  let saved=null; try{ saved=localStorage.getItem(PROFILE_KEY); }catch(e){}
+  if(saved && saved!==ACTIVE_PROFILE && PROFILES.some(p=>p.id===saved)) switchProfile(saved);
+  else applyProfileChrome(profileById(ACTIVE_PROFILE));
+}
+
 // (re)compute everything from the current DATA and render
 function applyData(){
   mergeManualData();
@@ -3141,6 +3246,7 @@ function applyData(){
 $("from").onchange=$("to").onchange=()=>{ setPreset(null); $("presetToggle").textContent="Jump to month ▾"; render(); };
 document.querySelectorAll("[data-analytics-period]").forEach(button=>button.onclick=()=>setAnalyticsPeriod(button.dataset.analyticsPeriod));
 $("presetToggle").onclick=togglePresets;
+renderProfileOptions();
 $("uploadBtn").onclick=()=>$("uploadInput").click();
 $("uploadInput").onchange=()=>{ uploadFiles([...$("uploadInput").files]); $("uploadInput").value=""; };
 
@@ -3365,6 +3471,7 @@ async function ruleAction(body){
 }
 
 async function recategorize(merchant, category){
+  if(ACTIVE_PROFILE!=="owner"){showToast("This profile is read-only.","err");return;}
   try{ await fetch("/api/recategorize",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({merchant, category})}).then(r=>r.json()); }catch(e){}
   await reloadAll();
@@ -3561,12 +3668,13 @@ $("addGoalBtn").onclick=()=>{
 };
 
 async function boot(){
-  LIVE = await loadBackend();
+  LIVE = LIVE_BACKEND = await loadBackend();
   await loadDashboardPrefs(null);
   $("uploadWrap").style.display = LIVE ? "" : "none";
   $("rulesCard").style.display = LIVE ? "" : "none";
   if(LIVE){ $("subtitle").dataset.live="1"; renderRules(); }
   applyData();
+  initProfiles();
   if(location.hash==="#cash-flow") showCashflowPage();
   else if(location.hash==="#admin") showAppView("admin");
   else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
@@ -3633,9 +3741,10 @@ async function afterLogin(session){
   try{ await supaLoad(); }catch(e){ showGate("Couldn't load your data: "+e.message); LOGGED_IN=false; return; }
   await loadDashboardPrefs(session.user);
   await loadPersonalState();                   // income/goals/subs/budgets from exp_* tables
-  LIVE=false;                                  // hosted v1: rules editor/upload hidden
+  LIVE=LIVE_BACKEND=false;                     // hosted v1: rules editor/upload hidden
   $("uploadWrap").style.display="none"; $("rulesCard").style.display="none";
   applyData();
+  initProfiles();
   if(location.hash==="#cash-flow") showCashflowPage();
   else if(location.hash==="#admin") showAppView("admin");
   else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
