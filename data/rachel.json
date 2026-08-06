@@ -1,0 +1,49 @@
+{
+  "name": "Rachel",
+  "title": "Rachel's Expense Tracker",
+  "generated": null,
+  "note": "Placeholder. Feed Rachel's statements/exports and this file gets filled in. Shapes below mirror the owner's live tables; every array may be empty.",
+  "transactions": [],
+  "chequing": [],
+  "payments": [],
+  "statements": [],
+  "manual_entries": [],
+  "_schema": {
+    "transactions": {
+      "date": "YYYY-MM-DD",
+      "merchant": "cleaned display name",
+      "raw": "original statement description",
+      "field": "optional source field/section",
+      "amount": "positive number = spend",
+      "category": "one of the app's expense categories",
+      "account": "e.g. Amex, BMO Mastercard, Scotiabank Visa, Tangerine Mastercard",
+      "account_type": "card | chequing"
+    },
+    "chequing": {
+      "date": "YYYY-MM-DD",
+      "desc": "description",
+      "amount": "signed number",
+      "kind": "debit | credit",
+      "balance": "running balance",
+      "internal": "true when it is a transfer between own accounts",
+      "dep_type": "optional deposit type label",
+      "is_income": "true for income deposits",
+      "account": "account name"
+    },
+    "payments": { "date": "YYYY-MM-DD", "amount": "number", "account": "card the payment was made to" },
+    "statements": {
+      "source": "account name",
+      "date": "YYYY-MM-DD statement date",
+      "label": "statement label",
+      "purchases": "number", "payments": "number", "interest": "number",
+      "balance": "number", "limit": "credit limit", "available": "credit available",
+      "due": "YYYY-MM-DD due date"
+    },
+    "manual_entries": {
+      "id": "uuid", "entry_type": "expense | income", "date": "YYYY-MM-DD",
+      "amount": "number", "name": "label", "category": "category name",
+      "account": "account name", "note": "free text", "currency": "CAD",
+      "created_at": "ISO timestamp", "updated_at": "ISO timestamp"
+    }
+  }
+}
