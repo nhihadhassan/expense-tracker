@@ -96,7 +96,6 @@
   .analytics-quickbar button{min-width:64px;min-height:40px;padding:0 14px;color:var(--muted);border:0;border-radius:999px;background:transparent;font-weight:700;cursor:pointer}
   .analytics-quickbar button.active{color:var(--text);background:rgba(124,92,255,.2)}
   .controls{display:none}
-  @media(min-width:861px){body:not(.mobile-custom) .wrap{zoom:.94}}
   .field{display:flex; flex-direction:column; gap:6px}
   .field label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px}
   .field input[type=date], .field select{
@@ -158,13 +157,41 @@
   .dot{width:9px; height:9px; border-radius:50%; display:inline-block; flex:0 0 9px}
   .cell-chip{display:inline-flex; align-items:center; gap:7px; max-width:100%; min-width:0; line-height:1.25}
   .cell-chip .cell-label{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  #txtable{table-layout:fixed}
-  #txtable th:nth-child(1), #txtable td:nth-child(1){width:150px}
-  #txtable th:nth-child(3), #txtable td:nth-child(3){width:150px}
-  #txtable th:nth-child(4), #txtable td:nth-child(4){width:180px}
-  #txtable th:nth-child(5), #txtable td:nth-child(5){width:120px}
-  #txtable td{overflow:hidden}
+  /* ---- Transactions card ---- */
+  .card-head{display:flex; align-items:baseline; justify-content:space-between; gap:14px}
+  .linkbtn{background:none; border:0; padding:4px 2px; color:var(--accent-strong);
+    font-size:13px; font-weight:700; cursor:pointer; border-radius:8px}
+  .linkbtn:hover{color:var(--success); text-decoration:underline}
+  #transactionsCard .tablewrap{border:0; border-radius:0; background:transparent; clip-path:none}
+  #transactionsCard .tablewrap.expanded{max-height:none}
+  #txtable{table-layout:fixed; font-size:14px}
+  #txtable th{background:var(--panel); font-size:12px; text-transform:none; letter-spacing:0;
+    font-weight:500; color:var(--muted); padding:6px 10px 10px}
+  #txtable td{overflow:hidden; padding:12px 10px; border-bottom:1px solid var(--line)}
   #txtable tbody tr:last-child td{border-bottom:0}
+  #txtable th:nth-child(2), #txtable td:nth-child(2){width:190px}
+  #txtable th:nth-child(3), #txtable td:nth-child(3){width:150px}
+  #txtable th:nth-child(4), #txtable td:nth-child(4){width:150px}
+  .tx-merchant{display:flex; align-items:center; gap:12px; min-width:0}
+  .tx-avatar{flex:0 0 38px; width:38px; height:38px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:color-mix(in srgb, var(--cat) 18%, transparent); color:var(--cat)}
+  .tx-avatar .material-symbols-outlined{font-size:20px}
+  .tx-names{min-width:0}
+  .tx-name{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .tx-sub{color:var(--soft); font-size:12px; margin-top:2px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap}
+  .tx-cat{display:inline-flex; align-items:center; gap:7px; max-width:100%; min-width:0;
+    padding:5px 11px; border:1px solid var(--line-strong); border-radius:9px;
+    font-size:12.5px; color:var(--text); line-height:1.25}
+  .tx-cat.is-income{border-color:color-mix(in srgb, var(--success) 55%, transparent); color:var(--success)}
+  .tx-cat .cell-label{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .tx-cat .cat-select{background:transparent; border:0; color:inherit; font-size:12.5px; padding:0}
+  .tx-date{color:var(--muted); white-space:nowrap;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px}
+  #txtable td.amt{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-weight:700; font-size:13.5px; white-space:nowrap}
+  #txtable td.amt.credit{color:var(--success)}
   .muted{color:var(--muted)}
 
   .btn{background:var(--panel-2); border:1px solid var(--line); color:var(--text);
@@ -509,7 +536,7 @@
   /* desktop shell offset */
   @media(min-width:1080px){
     #sidebar{display:flex}
-    .wrap{margin-left:250px; max-width:1240px}
+    .wrap{margin-left:250px; margin-right:0; max-width:1560px; padding:30px 30px 60px}
   }
   @media(max-width:640px){
     .hero-card{padding:22px; flex-direction:column; align-items:flex-start}
@@ -1148,16 +1175,18 @@
     </div>
 
     <div class="card full panel-node" id="transactionsCard" data-panel-id="transactions" data-panel-title="Transactions">
-      <h2>Transactions <span class="muted" id="txcount"></span></h2>
+      <div class="card-head">
+        <h2>Transactions <span class="muted" id="txcount"></span></h2>
+        <button class="linkbtn" id="txViewAll" type="button">View All</button>
+      </div>
       <p class="hint">Click a column header to sort.</p>
       <div class="tablewrap">
         <table id="txtable">
           <thead><tr>
-            <th data-k="date">Date</th>
             <th data-k="merchant">Merchant</th>
-            <th data-k="account">Card</th>
             <th data-k="category">Category</th>
-            <th class="amt" data-k="amount">Amount</th>
+            <th data-k="date">Date</th>
+            <th class="amt" data-k="amount">Amount (CAD)</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -1953,22 +1982,35 @@ function renderTable(rows){
   });
   const tb=$("txtable").querySelector("tbody");
   tb.innerHTML = sorted.map(r=>{
-    const catCell = LIVE
-      ? `<span class="cat-cell-sel cell-chip"><span class="dot" style="background:${CAT_COLORS[r.category]||"#999"}"></span>`
-        + catSelect(r.category, "cat-select", `data-merchant="${esc(r.merchant).replace(/"/g,'&quot;')}"`) + `</span>`
-      : `<span class="cell-chip"><span class="dot" style="background:${CAT_COLORS[r.category]||"#999"}"></span><span class="cell-label">${esc(r.category)}</span></span>`;
+    const credit = INCOME_CATEGORIES.includes(r.category) || r.amount < 0;
+    const color = (credit ? INCOME_COLORS : CAT_COLORS)[r.category] || "#aeb8c7";
+    const catInner = LIVE
+      ? catSelect(r.category, "cat-select", `data-merchant="${esc(r.merchant).replace(/"/g,'&quot;')}"`)
+      : `<span class="cell-label">${esc(r.category)}</span>`;
+    const catCell = `<span class="tx-cat${credit?" is-income":""}"><span class="dot" style="background:${color}"></span>${catInner}</span>`;
     const acct = r.account || "";
-    const cardCell = `<span class="cell-chip"><span class="dot" style="background:${ACCOUNT_COLORS[acct]||"#999"}"></span><span class="cell-label">${esc(acctShort(acct))}</span></span>`;
     return `<tr>
-      <td class="muted" style="white-space:nowrap">${parseISO(r.date).toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"})}</td>
-      <td>${esc(r.merchant)}</td>
-      <td>${cardCell}</td>
+      <td>
+        <div class="tx-merchant">
+          <span class="tx-avatar" style="--cat:${color}"><span class="material-symbols-outlined" aria-hidden="true">${CAT_ICONS[r.category]||"category"}</span></span>
+          <div class="tx-names">
+            <div class="tx-name">${esc(r.merchant)}</div>
+            ${acct?`<div class="tx-sub">${esc(acctShort(acct))}</div>`:""}
+          </div>
+        </div>
+      </td>
       <td>${catCell}</td>
-      <td class="amt">${fmt(r.amount)}</td>
+      <td class="tx-date">${parseISO(r.date).toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"})}</td>
+      <td class="amt${credit?" credit":""}">${credit?"+":"−"}${fmt(Math.abs(r.amount))}</td>
     </tr>`;}).join("");
   if(LIVE) tb.querySelectorAll(".cat-select").forEach(s=>s.onchange=()=>
     recategorize(s.dataset.merchant, s.value));
 }
+$("txViewAll").onclick=function(){
+  const wrap=$("txtable").closest(".tablewrap");
+  const open=wrap.classList.toggle("expanded");
+  this.textContent = open ? "Collapse" : "View All";
+};
 document.querySelectorAll("#txtable th").forEach(th=>{
   th.tabIndex=0;
   th.setAttribute("role","button");
