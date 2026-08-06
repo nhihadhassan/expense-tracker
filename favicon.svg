@@ -1,33 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Expense Tracker">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Expense Tracker category donut">
   <defs>
-    <linearGradient id="tile" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#102744"/>
-      <stop offset="1" stop-color="#07182c"/>
-    </linearGradient>
-    <linearGradient id="barOne" x1="13" y1="30" x2="23" y2="52" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#d6c9ff"/>
-      <stop offset="1" stop-color="#a78bfa"/>
-    </linearGradient>
-    <linearGradient id="barTwo" x1="27" y1="20" x2="37" y2="52" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#b994ff"/>
-      <stop offset="1" stop-color="#8b5cf6"/>
-    </linearGradient>
-    <linearGradient id="barThree" x1="41" y1="12" x2="51" y2="52" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#c4b5fd"/>
-      <stop offset="1" stop-color="#7c3aed"/>
-    </linearGradient>
-    <linearGradient id="spark" x1="45" y1="7" x2="54" y2="20" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8af0c5"/>
-      <stop offset="1" stop-color="#4edea3"/>
-    </linearGradient>
+    <linearGradient id="canvas" x1="8" y1="5" x2="56" y2="59" gradientUnits="userSpaceOnUse"><stop stop-color="#173650"/><stop offset="1" stop-color="#07182c"/></linearGradient>
   </defs>
-
-  <rect width="64" height="64" rx="16" fill="url(#tile)"/>
-  <rect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#8b5cf6" stroke-opacity=".18" stroke-width="2"/>
-
-  <rect x="12" y="34" width="10" height="18" rx="4" fill="url(#barOne)"/>
-  <rect x="27" y="24" width="10" height="28" rx="4" fill="url(#barTwo)"/>
-  <rect x="42" y="14" width="10" height="38" rx="4" fill="url(#barThree)"/>
-
-  <path d="M48 6.5c.72 4.62 2.87 6.77 7.5 7.5-4.63.73-6.78 2.88-7.5 7.5-.72-4.62-2.87-6.77-7.5-7.5 4.63-.73 6.78-2.88 7.5-7.5Z" fill="url(#spark)"/>
+  <rect width="64" height="64" rx="18" fill="url(#canvas)"/>
+  <circle cx="32" cy="32" r="21" fill="none" stroke="#18354b" stroke-width="9"/>
+  <circle cx="32" cy="32" r="21" fill="none" stroke="#4edea3" stroke-width="9" stroke-linecap="round" stroke-dasharray="60 72" transform="rotate(-90 32 32)"/>
+  <circle cx="32" cy="32" r="21" fill="none" stroke="#3b82f6" stroke-width="9" stroke-linecap="round" stroke-dasharray="24 108" stroke-dashoffset="-66" transform="rotate(-90 32 32)"/>
+  <circle cx="32" cy="32" r="21" fill="none" stroke="#f6b84d" stroke-width="9" stroke-linecap="round" stroke-dasharray="17 115" stroke-dashoffset="-96" transform="rotate(-90 32 32)"/>
+  <circle cx="32" cy="32" r="12" fill="#0b2033"/>
+  <path d="M32 22v10l7.5 4.5" fill="none" stroke="#e7eefb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
