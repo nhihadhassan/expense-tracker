@@ -170,7 +170,7 @@
   .btn:disabled,.composer-save:disabled{cursor:not-allowed; opacity:.58; transform:none; box-shadow:none}
   .btn:active,.chip:active,.acct-chip:active{transform:translateY(1px)}
   .btn.primary{background:var(--accent); border-color:var(--accent); color:oklch(98% .006 286)}
-  .header-row{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap}
+  .header-row{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; padding-bottom:10px}
   .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-left:auto}
 
   button:focus-visible, input:focus-visible, select:focus-visible, .acct-chip:focus-visible,
@@ -443,8 +443,14 @@
   .card,.kpi,.recur-kpi,.controls,.preview-kpi,.admin-section,.import-drop{background:var(--panel)}
   .card,.controls,.admin-section{border-radius:20px}
   .kpi,.recur-kpi{border-radius:16px}
-  .card{transition:border-color .2s var(--ease-out),box-shadow .2s var(--ease-out)}
-  .card:hover{border-color:var(--line-strong); box-shadow:0 12px 28px -24px rgba(0,0,0,.7)}
+  .card{transition:border-color .18s var(--ease-out),box-shadow .18s var(--ease-out),transform .18s var(--ease-out)}
+  @media(hover:hover){
+    .card:hover,.kpi:hover,.recur-kpi:hover,.scard:hover,.wallet-card:hover,.fun-card:hover,.admin-section:hover,.import-drop:hover{
+      transform:translateY(-2px); border-color:color-mix(in srgb,var(--accent-strong) 52%,var(--line));
+      box-shadow:0 20px 38px -25px rgba(78,222,163,.46),0 12px 26px -22px rgba(0,0,0,.76);
+    }
+    .wallet-card:hover{box-shadow:0 24px 42px -25px rgba(78,222,163,.42),0 14px 28px -22px rgba(0,0,0,.8)}
+  }
   .card h2{font-size:16px}
   .kpi .value{font-size:26px}
   /* keep scrollable table + sticky header crisp (no blur bleed) */
@@ -455,6 +461,8 @@
   .btn.primary{background:var(--accent); border-color:var(--accent); color:oklch(98% .006 286);
     box-shadow:0 8px 20px -8px rgba(139,92,246,.5)}
   .btn.primary:hover{filter:brightness(1.08); border-color:transparent}
+  .theme-toggle{width:44px; min-width:44px; padding:0; display:inline-flex; align-items:center; justify-content:center}
+  html[data-theme="light"] .theme-toggle{color:#b45309; border-color:color-mix(in srgb,#f59e0b 45%,var(--line))}
   .chip.active{background:linear-gradient(135deg,#8b5cf6,#a855f7); border-color:transparent; color:#fff}
 
   /* left sidebar (desktop) */
@@ -462,10 +470,11 @@
     flex-direction:column; gap:6px; padding:22px 16px;
     background:var(--panel);
     border-right:1px solid var(--line)}
-  .sb-brand{display:flex; align-items:center; gap:11px; font-weight:800; font-size:20px;
-    color:var(--success); padding:4px 8px 18px}
-  .sb-brand .sb-logo{display:inline-flex; width:30px; height:30px; align-items:center; justify-content:center;
-    border-radius:9px; background:linear-gradient(135deg,#8b5cf6,#4edea3); color:#0b1326; font-size:16px}
+  .sb-brand{display:flex; align-items:center; gap:13px; font-weight:800; font-size:20px;
+    color:var(--success); padding:4px 8px 22px}
+  .sb-brand .sb-logo{display:inline-flex; width:48px; height:48px; flex:0 0 48px; align-items:center; justify-content:center;
+    border-radius:15px; background:#0b2033; border:1px solid rgba(78,222,163,.24); overflow:hidden}
+  .sb-logo svg{display:block; width:42px; height:42px}
   .sb-nav{display:flex; flex-direction:column; gap:4px; flex:1}
   .sb-nav a,.sb-foot a{display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:12px;
     color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none;
@@ -505,7 +514,7 @@
 
   /* ===================== Tabbed pages ===================== */
   .tab-off{display:none !important}
-  .pagetabs{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 20px; padding:6px;
+  .pagetabs{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 22px; padding:6px;
     background:var(--panel); border:1px solid var(--line); border-radius:14px}
   .ptab{display:inline-flex; align-items:center; gap:8px; border:none; cursor:pointer;
     background:transparent; color:var(--muted); font-size:14px; font-weight:650; font-family:"Inter",sans-serif;
@@ -800,7 +809,7 @@
   <div class="dz-s">They'll be parsed, deduped, and added instantly.</div>
 </div></div>
 <aside id="sidebar">
-  <div class="sb-brand"><span class="sb-logo">◈</span> Nhihad's Expense Tracker</div>
+  <div class="sb-brand"><span class="sb-logo" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="23" stroke="#19354a" stroke-width="8"/><path d="M32 9a23 23 0 1 1-20.8 13.2" stroke="#4edea3" stroke-width="8" stroke-linecap="round"/><path d="M14.5 19.8A23 23 0 0 1 27 9.6" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/><circle cx="32" cy="32" r="12" fill="#0b2033"/><path d="M32 20v12l9 5" stroke="#dfffee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Nhihad's Expense Tracker</div>
   <nav class="sb-nav">
     <a class="active" href="#tab-dashboard" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
     <a href="#cash-flow" data-cashflow-page><span class="material-symbols-outlined">donut_large</span> Cash flow</a>
@@ -828,7 +837,7 @@
       </span>
       <button class="btn view-nav active" id="dashboardNav" type="button">Dashboard</button>
       <button class="btn view-nav" id="adminNav" type="button">Admin</button>
-      <button class="btn" id="themeToggle" type="button" aria-pressed="false">Light theme</button>
+      <button class="btn theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to light theme"><span class="material-symbols-outlined" aria-hidden="true">dark_mode</span><span class="sr-only">Switch theme</span></button>
       <button class="btn primary" id="export">Export CSV</button>
     </div>
   </header>
@@ -1311,7 +1320,12 @@ function applyTheme(theme){
   const value=theme==="light"?"light":"dark";
   document.documentElement.dataset.theme=value;
   const button=$("themeToggle");
-  if(button){ button.textContent=value==="light"?"Dark theme":"Light theme"; button.setAttribute("aria-pressed",value==="light"?"true":"false"); }
+  if(button){
+    const next=value==="light"?"dark":"light";
+    button.innerHTML=`<span class="material-symbols-outlined" aria-hidden="true">${value==="light"?"light_mode":"dark_mode"}</span><span class="sr-only">Switch to ${next} theme</span>`;
+    button.setAttribute("aria-label",`Switch to ${next} theme`);
+    button.setAttribute("aria-pressed",value==="light"?"true":"false");
+  }
   try{ localStorage.setItem(THEME_KEY,value); }catch(e){}
 }
 applyTheme((()=>{ try{return localStorage.getItem(THEME_KEY)||"dark";}catch(e){return "dark";} })());
