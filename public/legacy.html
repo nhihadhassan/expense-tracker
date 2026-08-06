@@ -96,7 +96,7 @@
   .analytics-quickbar button{min-width:64px;min-height:40px;padding:0 14px;color:var(--muted);border:0;border-radius:999px;background:transparent;font-weight:700;cursor:pointer}
   .analytics-quickbar button.active{color:var(--text);background:rgba(124,92,255,.2)}
   body.analytics-view .controls{display:none} body.analytics-view .analytics-quickbar{display:flex}
-  body.analytics-view .grid{transform:scale(.96);transform-origin:top center;width:104.2%;margin-left:-2.1%;margin-bottom:-3.5%}
+  @media(min-width:861px){body:not(.mobile-custom) .wrap{zoom:.94}}
   .field{display:flex; flex-direction:column; gap:6px}
   .field label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px}
   .field input[type=date], .field select{
