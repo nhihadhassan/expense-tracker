@@ -30,7 +30,7 @@ function App() {
       <Route path="/" element={<Overview {...ledger} />} />
       <Route path="/cash-flow" element={<CashFlow {...ledger} onAdd={(type, entry) => setComposer({ type, entry })} />} />
       <Route path="/activity" element={<Activity {...ledger} onEdit={entry => setComposer({ type: entry.entry_type, entry })} />} />
-      <Route path="/plans" element={<Plans />} />
+      <Route path="/plans" element={<Plans data={ledger.data} />} />
       <Route path="/more" element={<More />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -92,7 +92,33 @@ function Activity({ data, status, error, onEdit }: ReturnType<typeof useLedger> 
   return <Screen eyebrow="Activity" title="Every entry, traceable." action={<label className="search"><Receipt size={17} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search activity" /></label>}><LoadState status={status} error={error}><section className="activity-list">{visible.map(row => <ActivityRow key={row.id} row={row} onClick={row.source === 'manual' ? () => { const entry = data.manual.find(item => item.id === row.id); if (entry) onEdit(entry) } : undefined} />)}{visible.length === 0 && <Empty message="No entries match this search." />}</section></LoadState></Screen>
 }
 
-function Plans() { return <Screen eyebrow="Plans" title="Give spending a destination."><section className="plans-empty"><Target size={36} weight="duotone" /><h2>Budgets and goals stay connected.</h2><p>Open the established planning workspace to manage monthly budgets, savings goals, and recurring charges while this route is migrated into React.</p><a href="/legacy.html#tab-budgets" className="quiet-action">Open plans <ArrowRight size={18} /></a></section></Screen> }
+function Plans({ data }: { data: Dataset }) {
+  const expenses = data.transactions.filter(row => row.amount > 0)
+  const spentByCategory = expenses.reduce<Record<string, number>>((all, row) => { all[row.category] = (all[row.category] || 0) + row.amount; return all }, {})
+  const defaults = { Food: 800, Subscriptions: 150, Transport: 300, Entertainment: 450, Shopping: 650 }
+  const savedBudgets = readJson<Record<string, number>>('expense-budgets-v1', {})
+  const budgets = Object.entries({ ...defaults, ...savedBudgets }).filter(([, limit]) => Number(limit) > 0).map(([category, limit]) => ({ category, limit: Number(limit), spent: spentByCategory[category] || 0 })).sort((a, b) => b.spent - a.spent)
+  const savedGoals = readJson<Array<{ name: string; target: number; saved: number }>>('expense-goals-v1', [])
+  const goals = savedGoals.length ? savedGoals : [{ name: 'Emergency Fund', target: 20000, saved: 15000 }, { name: 'Japan Trip', target: 5000, saved: 1500 }, { name: 'New Car Downpayment', target: 8000, saved: 800 }]
+  const totalSpent = budgets.reduce((sum, item) => sum + item.spent, 0)
+  const totalBudget = budgets.reduce((sum, item) => sum + item.limit, 0)
+  const health = totalBudget ? Math.min(100, totalSpent / totalBudget * 100) : 0
+  return <Screen eyebrow="Plans" title="Budgets & Goals" action={<button className="quiet-action plans-month"><CalendarBlank size={18} /> {new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })}</button>}>
+    <p className="plans-intro">Track spending and progress towards your financial targets.</p>
+    <section className="plans-hero-grid">
+      <article className="budget-health"><div className="plans-card-heading"><h2>Budget Health</h2><CheckCircle size={24} weight="duotone" /></div><div className="health-total"><span>Total spent</span><strong>{formatMoney(totalSpent)}</strong><small>of {formatMoney(totalBudget)} budget</small></div><div className="health-track"><i style={{ width: `${health}%` }} /></div><div className="health-meta"><span>{Math.max(0, Math.round(100 - health))}% remaining</span><b className={health <= 85 ? 'income-value' : 'expense-value'}>{health <= 85 ? 'On Track' : 'Review'}</b></div></article>
+      <article className="active-budgets"><div className="plans-card-heading"><h2>Active Budgets</h2><a className="plans-add" href="/legacy.html#tab-budgets">+ New budget</a></div><div className="budget-card-grid">{budgets.slice(0, 3).map(item => <BudgetCard key={item.category} {...item} />)}<a className="create-budget" href="/legacy.html#tab-budgets"><Plus size={22} /><b>Create new</b></a></div></article>
+    </section>
+    <section className="savings-panel"><div className="plans-card-heading"><h2>Savings Goals</h2><div className="goal-arrows"><button aria-label="Previous goals">‹</button><button aria-label="Next goals">›</button></div></div><div className="goal-grid">{goals.slice(0, 3).map(goal => <GoalCard key={goal.name} {...goal} />)}</div></section>
+    <section className="plans-analysis"><div className="section-title"><div><p className="eyebrow">Deeper analysis</p><h2>Keep the detail below the plan.</h2></div><a href="/legacy.html#tab-analytics" className="quiet-action">Open analytics <ArrowRight size={17} /></a></div><div className="analysis-links"><a href="/legacy.html#tab-analytics">Monthly variance <small>Compare actual spend with targets</small><ArrowRight size={17} /></a><a href="/legacy.html#tab-analytics">Cash-flow projection <small>See the next six months</small><ArrowRight size={17} /></a><a href="/legacy.html#tab-analytics">Spending trends <small>Find categories moving fastest</small><ArrowRight size={17} /></a></div></section>
+  </Screen>
+}
+
+function BudgetCard({ category, limit, spent }: { category: string; limit: number; spent: number }) { const pct = Math.min(100, limit ? spent / limit * 100 : 0); const over = spent > limit; return <article className="budget-card"><span className="budget-icon"><Wallet size={21} weight="duotone" /></span><div className="budget-copy"><b>{category}</b><small>{formatMoney(limit, 0)} limit</small></div><div className="budget-amount"><strong>{formatMoney(spent, 0)}</strong><small className={over ? 'expense-value' : 'income-value'}>{over ? 'over' : 'spent'}</small></div><div className="budget-progress"><i className={over ? 'over' : ''} style={{ width: `${pct}%` }} /></div><small className="budget-remaining">{formatMoney(Math.max(0, limit - spent), 0)} remaining</small></article> }
+
+function GoalCard({ name, target, saved }: { name: string; target: number; saved: number }) { const pct = target ? Math.min(100, saved / target * 100) : 0; return <article className="goal-card"><div className="goal-ring" style={{ '--goal-pct': `${pct * 3.6}deg` } as React.CSSProperties}><strong>{pct.toFixed(0)}%</strong></div><b>{name}</b><span>{formatMoney(saved, 0)} / {formatMoney(target, 0)}</span></article> }
+
+function readJson<T>(key: string, fallback: T): T { try { const value = JSON.parse(localStorage.getItem(key) || 'null'); return value ?? fallback } catch { return fallback } }
 
 function More() { return <Screen eyebrow="More" title="Tools and settings."><section className="tool-list"><a href="/legacy.html#tab-admin"><UploadSimple size={22} weight="duotone" /><span><b>Statement imports</b><small>Preview, map, and commit your monthly statements.</small></span><ArrowRight size={18} /></a><a href="/legacy.html#tab-analytics"><TrendUp size={22} weight="duotone" /><span><b>Deeper analytics</b><small>Forecasts, anomalies, subscriptions, and account insights.</small></span><ArrowRight size={18} /></a><a href="/legacy.html#tab-rules"><Bank size={22} weight="duotone" /><span><b>Category rules</b><small>Keep future statement transactions consistent.</small></span><ArrowRight size={18} /></a></section></Screen> }
 
