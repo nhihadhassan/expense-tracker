@@ -838,8 +838,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .category-icon{width:40px; height:40px; border-radius:12px; display:grid; place-items:center; color:var(--cat);
     background:color-mix(in srgb,var(--cat) 14%,transparent)}
   .category-icon .material-symbols-outlined{font-size:22px}
-  .category-main{min-width:0}.category-name{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .category-meta{color:var(--muted); font-size:12px; margin-top:2px}.category-amount{text-align:right; font-weight:800}
+  .category-main{min-width:0; display:flex; flex-direction:column; gap:2px}
+  .category-name{display:block; min-width:0; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .category-meta{display:block; min-width:0; color:var(--muted); font-size:12px; line-height:1.35;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .category-amount{text-align:right; font-weight:800; white-space:nowrap; font-variant-numeric:tabular-nums}
   .category-transactions{padding:0 14px 10px 67px}
   .category-transaction{display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid var(--line); font-size:12.5px}
   .category-transaction span:first-child{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
