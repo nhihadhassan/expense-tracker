@@ -710,6 +710,33 @@
   html[data-theme="light"] .mobile-cash-row.in b{color:#067647}
   .mobile-net{border-top:1px solid var(--line); padding-top:7px; margin-top:1px}
   .mobile-net b.good{color:var(--success)} .mobile-net b.bad{color:var(--danger)}
+  /* ---- category ring around the cash-flow donut ---- */
+  /* square stage so the icon ring is a true circle around the donut */
+  .donut-stage{position:relative; width:min(100%,560px); aspect-ratio:1; margin:0 auto}
+  .donut-stage .mobile-donut-wrap{position:absolute; inset:18%; width:auto !important; min-height:0 !important; margin:0}
+  .donut-stage .mobile-donut-wrap canvas{width:100% !important; height:100% !important}
+  .cat-ring{position:absolute; inset:0; pointer-events:none}
+  .cat-ring-item{position:absolute; transform:translate(-50%,-50%); display:flex; flex-direction:column;
+    align-items:center; gap:2px; padding:4px; border:0; border-radius:12px; background:transparent;
+    color:var(--muted); cursor:pointer; pointer-events:auto; transition:transform .16s var(--ease-out)}
+  .cat-ring-item:hover, .cat-ring-item:focus-visible, .cat-ring-item.active{transform:translate(-50%,-50%) scale(1.08); color:var(--text)}
+  .cat-ring-item:focus-visible{outline:none; box-shadow:var(--focus)}
+  .cat-ring-icon{width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center;
+    border-radius:50%; background:color-mix(in srgb, var(--cat) 16%, transparent); color:var(--cat)}
+  .cat-ring-icon .material-symbols-outlined{font-size:19px}
+  .cat-ring-pct{font-size:11.5px; font-weight:700; color:var(--cat); font-variant-numeric:tabular-nums}
+  .cat-ring-amt{position:absolute; left:50%; top:-8px; transform:translate(-50%,-100%);
+    padding:5px 9px; border-radius:9px; border:1px solid var(--line-strong); background:var(--panel-2);
+    color:var(--text); font-size:12px; font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums;
+    box-shadow:0 10px 26px rgba(0,0,0,.45); opacity:0; pointer-events:none;
+    transition:opacity .15s var(--ease-out), transform .18s var(--ease-out)}
+  .cat-ring-item:hover .cat-ring-amt, .cat-ring-item:focus-visible .cat-ring-amt, .cat-ring-item.active .cat-ring-amt{
+    opacity:1; transform:translate(-50%,-100%) translateY(-2px)}
+  @media(max-width:640px){
+    .donut-stage .mobile-donut-wrap{width:min(62%,260px)}
+    .cat-ring-icon{width:28px; height:28px} .cat-ring-icon .material-symbols-outlined{font-size:16px}
+    .cat-ring-pct{font-size:10.5px}
+  }
   .mobile-category-focus{min-height:66px; padding:14px 2px 2px; text-align:center; color:var(--muted); line-height:1.45}
   .mobile-category-focus b{color:var(--text)}
   .mobile-category-list{margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:18px; overflow:hidden}
@@ -741,8 +768,7 @@
   body.cashflow-page #mobileCashFlow{display:block;order:2;width:100%;max-width:780px;margin:0 auto;padding:8px 0 108px}
   body.cashflow-page #mobileCashFlow .mobile-titlebar{margin-bottom:20px}
   body.cashflow-page #mobileCashFlow .mobile-period{max-width:780px}
-  body.cashflow-page #mobileCashFlow .mobile-donut-wrap{width:min(100%,460px);min-height:380px}
-  body.cashflow-page #mobileCashFlow .mobile-donut-wrap canvas{height:380px !important}
+  body.cashflow-page #mobileCashFlow .donut-stage{width:min(100%,620px)}
   .money-dock{display:flex; position:fixed; right:24px; bottom:24px; z-index:58; gap:10px; padding:8px; border:1px solid var(--line); border-radius:999px;
     background:var(--panel); box-shadow:0 18px 48px -24px rgba(0,0,0,.65)}
   .money-action{min-height:50px; border:0; border-radius:999px; padding:0 17px; display:flex; align-items:center; gap:8px;
@@ -761,6 +787,43 @@
   .calc-key.operator{color:var(--accent-strong); background:var(--panel-2)}
   .composer-fields{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; min-width:0}.composer-field{display:flex; flex-direction:column; gap:6px; min-width:0}.composer-field.full{grid-column:1/-1}
   .composer-field label{font-size:12px; color:var(--muted); font-weight:600}.composer-field input,.composer-field textarea{width:100%; min-width:0; min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);padding:11px}
+  .field-optional{margin-left:6px; padding:2px 6px; border-radius:6px; background:var(--panel-2);
+    color:var(--soft); font-size:10.5px; font-weight:600; letter-spacing:.02em; text-transform:uppercase}
+  /* ---- date picker ---- */
+  .datepick{position:relative}
+  .datepick-trigger{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+    min-height:44px; padding:11px; border:1px solid var(--line); border-radius:12px;
+    background:var(--panel); color:var(--text); font-size:14px; font-weight:600; cursor:pointer;
+    transition:border-color .18s var(--ease-out), background .18s var(--ease-out)}
+  .datepick-trigger:hover{border-color:var(--line-strong)}
+  .datepick-trigger:focus-visible{outline:none; box-shadow:var(--focus)}
+  .datepick.open .datepick-trigger{border-color:var(--accent-strong)}
+  .datepick-trigger .material-symbols-outlined{font-size:19px; color:var(--muted)}
+  .datepick-pop{position:absolute; z-index:40; top:calc(100% + 8px); left:0; width:296px; max-width:calc(100vw - 36px);
+    padding:14px; border:1px solid var(--line-strong); border-radius:18px; background:var(--panel-2);
+    box-shadow:0 24px 60px rgba(0,0,0,.5); opacity:0; transform:translateY(-6px) scale(.97);
+    transform-origin:top left; pointer-events:none; transition:opacity .18s var(--ease-out), transform .22s var(--ease-out)}
+  .datepick.open .datepick-pop{opacity:1; transform:none; pointer-events:auto}
+  .datepick-nav{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px}
+  .datepick-month{font-size:15px; font-weight:700; letter-spacing:-.01em}
+  .datepick-nav button{width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center;
+    border:0; border-radius:50%; background:transparent; color:var(--accent-strong); cursor:pointer}
+  .datepick-nav button:hover{background:rgba(255,255,255,.07)}
+  .datepick-dow{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px}
+  .datepick-dow span{text-align:center; font-size:11px; font-weight:600; color:var(--soft)}
+  .datepick-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px}
+  .datepick-grid button{aspect-ratio:1; display:inline-flex; align-items:center; justify-content:center;
+    border:0; border-radius:50%; background:transparent; color:var(--text); font-size:13px;
+    font-variant-numeric:tabular-nums; cursor:pointer; transition:background .14s var(--ease-out)}
+  .datepick-grid button:hover{background:rgba(255,255,255,.08)}
+  .datepick-grid button.other{color:var(--soft); opacity:.55}
+  .datepick-grid button.today{box-shadow:inset 0 0 0 1px var(--line-strong)}
+  .datepick-grid button.sel{background:var(--accent); color:#04140d; font-weight:700}
+  .datepick-foot{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px;
+    padding-top:10px; border-top:1px solid var(--line)}
+  .datepick-foot button{border:0; background:none; color:var(--accent-strong); font-size:13px; font-weight:600;
+    padding:6px 8px; border-radius:8px; cursor:pointer}
+  .datepick-foot button:hover{background:rgba(255,255,255,.07)}
   .composer-field textarea{min-height:74px;resize:vertical}.composer-category-title{font-size:12px;color:var(--muted);font-weight:600;margin:18px 0 8px}
   .composer-categories{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px}
   .composer-category{min-height:76px;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--text);padding:9px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:11px;cursor:pointer;text-align:center}
@@ -786,7 +849,7 @@
     html[data-theme="light"] .mobile-nav-btn.active{color:#5b21b6;background:#ede9fe}
     .money-dock{left:50%;right:auto;bottom:calc(68px + env(safe-area-inset-bottom));transform:translateX(-50%);width:calc(100% - 24px);max-width:420px;justify-content:space-between;padding:6px}
     .money-action{flex:1;justify-content:center;min-height:48px;padding:0 10px}.entry-composer{width:100%;border-left:0}.composer-body{padding-inline:14px}
-    .mobile-period-modes{grid-template-columns:repeat(3,1fr)}.mobile-donut-wrap{min-height:290px}.mobile-donut-wrap canvas{height:290px !important}.composer-categories{grid-template-columns:repeat(3,1fr)}
+    .mobile-period-modes{grid-template-columns:repeat(3,1fr)}.composer-categories{grid-template-columns:repeat(3,1fr)}
     .mobile-wallet-strip{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; margin:0 -12px 16px; padding:0 12px 3px; scrollbar-width:none}
     .mobile-wallet-strip::-webkit-scrollbar{display:none}
     .mobile-wallet-strip .wallet-card{flex:0 0 min(86vw,340px); min-height:184px; scroll-snap-align:start; padding:20px}
@@ -907,7 +970,10 @@
     </div>
     <section class="mobile-cashflow" aria-labelledby="mobileCashflowTitle">
       <h2 id="mobileCashflowTitle" class="sr-only">Cash flow by category</h2>
-      <div class="mobile-donut-wrap"><canvas id="mobileDonut"></canvas><div class="mobile-donut-center" id="mobileDonutCenter"></div></div>
+      <div class="donut-stage">
+        <div class="mobile-donut-wrap"><canvas id="mobileDonut"></canvas><div class="mobile-donut-center" id="mobileDonutCenter"></div></div>
+        <div class="cat-ring" id="mobileCatRing" aria-label="Category share of spending"></div>
+      </div>
       <div class="mobile-category-focus" id="mobileCategoryFocus">Tap a category to see its share of income.</div>
     </section>
     <div class="mobile-category-list" id="mobileCategoryList"></div>
@@ -1251,9 +1317,18 @@
     <div class="composer-amount" id="composerAmount">$0.00</div>
     <div class="calculator-pad" id="calculatorPad"></div>
     <div class="composer-fields">
-      <div class="composer-field"><label for="entryDate">Date</label><input id="entryDate" type="date"></div>
+      <div class="composer-field">
+        <label for="entryDateBtn">Date</label>
+        <div class="datepick" id="entryDatePick">
+          <button class="datepick-trigger" id="entryDateBtn" type="button" aria-haspopup="dialog" aria-expanded="false">
+            <span class="datepick-value" id="entryDateLabel">Today</span>
+            <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+          </button>
+          <input id="entryDate" type="hidden">
+        </div>
+      </div>
       <div class="composer-field"><label for="entryAccount">Account</label><input id="entryAccount" placeholder="Cash or account"></div>
-      <div class="composer-field full"><label for="entryName">Name or source</label><input id="entryName" maxlength="160" placeholder="Merchant, salary, refund…"></div>
+      <div class="composer-field full"><label for="entryName">Name or source <span class="field-optional">optional</span></label><input id="entryName" maxlength="160" placeholder="Merchant, salary, refund…"></div>
       <div class="composer-field full"><label for="entryNote">Note</label><textarea id="entryNote" maxlength="500" placeholder="Optional note"></textarea></div>
     </div>
     <div class="composer-category-title">Category</div><div class="composer-categories" id="composerCategories"></div>
@@ -2785,6 +2860,44 @@ function selectedMobileData(){
   return {from,to,expenses,income:importedIncome.concat(manualIncome)};
 }
 function renderMobile(){ renderMobileOverview(); renderMobileActivity(); }
+// Monefy-style ring: one icon per category, placed at its slice's mid-angle, with the
+// share as a label and the exact dollar amount revealed on hover/tap.
+function renderCategoryRing(categories, total){
+  const ring=$("mobileCatRing"); if(!ring) return;
+  if(!categories.length||!total){ ring.innerHTML=""; return; }
+  const MAX=12;
+  // mid-angle of each slice, in the same orientation Chart.js draws (12 o'clock, clockwise)
+  let cursor=0; const all=categories.map(([name,value])=>{
+    const share=value/total, mid=cursor+share/2; cursor+=share; return {name,value,share,angle:mid*Math.PI*2-Math.PI/2};
+  });
+  // slivers under 1% would pile up on each other; keep the ring readable
+  let marks=all.filter(m=>m.share>=0.01).slice(0,MAX);
+  if(!marks.length) marks=all.slice(0,Math.min(8,all.length));
+  // nudge icons apart so small neighbouring slices don't stack on top of each other
+  const MIN_GAP=0.30;
+  for(let pass=0; pass<3; pass++){
+    for(let i=1;i<marks.length;i++){
+      const gap=marks[i].angle-marks[i-1].angle;
+      if(gap<MIN_GAP){ const push=(MIN_GAP-gap)/2; marks[i-1].angle-=push; marks[i].angle+=push; }
+    }
+  }
+  ring.innerHTML=marks.map(m=>{
+    const color=CAT_COLORS[m.name]||"#aeb8c7";
+    const x=50+Math.cos(m.angle)*44, y=50+Math.sin(m.angle)*44;
+    const pct=m.share*100, pctLabel=pct>=1?Math.round(pct):pct.toFixed(1).replace(/\.0$/,"");
+    return `<button type="button" class="cat-ring-item${m.name===MOBILE_SELECTED_CAT?" active":""}"
+      style="left:${x.toFixed(2)}%; top:${y.toFixed(2)}%; --cat:${color}" data-ring-cat="${esc(m.name).replace(/"/g,'&quot;')}"
+      aria-label="${esc(m.name)}: ${fmt(m.value)}, ${pctLabel}% of spending">
+      <span class="cat-ring-amt">${esc(m.name)} · ${fmt(m.value)}</span>
+      <span class="cat-ring-icon"><span class="material-symbols-outlined" aria-hidden="true">${CAT_ICONS[m.name]||"category"}</span></span>
+      <span class="cat-ring-pct">${pctLabel}%</span></button>`;
+  }).join("");
+  ring.querySelectorAll("[data-ring-cat]").forEach(btn=>btn.onclick=()=>{
+    const name=btn.dataset.ringCat;
+    MOBILE_SELECTED_CAT = MOBILE_SELECTED_CAT===name ? null : name;
+    renderMobileOverview();
+  });
+}
 function renderMobileOverview(){
   const target=$("mobileCashFlow"); if(!target) return; initMobileRange();
   document.querySelectorAll("#mobilePeriodModes [data-mode]").forEach(button=>button.classList.toggle("active",button.dataset.mode===MOBILE_RANGE.mode));
@@ -2808,6 +2921,7 @@ function renderMobileOverview(){
   }]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",animation:{duration:180},plugins:{legend:{display:false},tooltip:{enabled:!!labels.length,callbacks:{label:context=>` ${context.label}: ${fmt(context.parsed)}`}}},onClick:(_event,elements)=>{
     if(elements.length){MOBILE_SELECTED_CAT=labels[elements[0].index];renderMobileOverview();}
   }}});
+  renderCategoryRing(categories, values.reduce((a,b)=>a+b,0));
   const focus=$("mobileCategoryFocus");
   if(MOBILE_SELECTED_CAT){ const amount=totals[MOBILE_SELECTED_CAT]||0, count=expenses.filter(r=>r.category===MOBILE_SELECTED_CAT).length;
     focus.innerHTML=`<b>${esc(MOBILE_SELECTED_CAT)}</b>: ${fmt(amount)} across ${count} transaction${count===1?'':'s'}<br>${cashOut?`${(amount/cashOut*100).toFixed(1)}% of expenses · `:""}${cashIn>0?`${(amount/cashIn*100).toFixed(1)}% of recorded income`:'No income recorded'}`;
@@ -2867,9 +2981,66 @@ function renderComposerCategories(){
   $("composerCategories").innerHTML=categories.map(category=>`<button type="button" class="composer-category ${category===COMPOSER.category?'active':''}" data-category="${esc(category).replace(/"/g,'&quot;')}" style="--cat:${(COMPOSER.type==="income"?INCOME_COLORS:CAT_COLORS)[category]||'#aeb8c7'}"><span class="material-symbols-outlined">${CAT_ICONS[category]||'category'}</span><span>${esc(category)}</span></button>`).join("");
   $("composerCategories").querySelectorAll("[data-category]").forEach(button=>button.onclick=()=>{COMPOSER.category=button.dataset.category;renderComposerCategories();});
 }
+// ---- Date picker (custom calendar popover) ----
+const DP_DOW=["S","M","T","W","T","F","S"];
+let DP_VIEW=null;                                     // first day of the month currently on screen
+function dpISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function dpParse(iso){ const [y,m,d]=String(iso||"").split("-").map(Number); return (y&&m&&d)?new Date(y,m-1,d):new Date(); }
+function setEntryDate(iso){
+  $("entryDate").value=iso;
+  const d=dpParse(iso), today=dpISO(new Date());
+  $("entryDateLabel").textContent = iso===today ? "Today" : d.toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"});
+  if($("entryDatePick").classList.contains("open")) renderDatePicker();
+}
+function renderDatePicker(){
+  const pop=$("entryDatePop"); if(!pop) return;
+  const sel=$("entryDate").value, selD=dpParse(sel), today=new Date(), todayISO=dpISO(today);
+  if(!DP_VIEW) DP_VIEW=new Date(selD.getFullYear(), selD.getMonth(), 1);
+  const first=new Date(DP_VIEW.getFullYear(), DP_VIEW.getMonth(), 1);
+  const start=new Date(first); start.setDate(1-first.getDay());
+  let cells="";
+  for(let i=0;i<42;i++){
+    const day=new Date(start.getFullYear(), start.getMonth(), start.getDate()+i), iso=dpISO(day);
+    const cls=[day.getMonth()!==first.getMonth()?"other":"", iso===todayISO?"today":"", iso===sel?"sel":""].filter(Boolean).join(" ");
+    cells+=`<button type="button" class="${cls}" data-date="${iso}" aria-label="${day.toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}"${iso===sel?' aria-current="date"':''}>${day.getDate()}</button>`;
+  }
+  pop.innerHTML=`<div class="datepick-nav">
+      <button type="button" data-dp-step="-1" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
+      <div class="datepick-month">${first.toLocaleDateString("en-CA",{month:"long",year:"numeric"})}</div>
+      <button type="button" data-dp-step="1" aria-label="Next month"><span class="material-symbols-outlined">chevron_right</span></button>
+    </div>
+    <div class="datepick-dow">${DP_DOW.map(d=>`<span>${d}</span>`).join("")}</div>
+    <div class="datepick-grid">${cells}</div>
+    <div class="datepick-foot"><button type="button" data-dp-today>Today</button><button type="button" data-dp-done>Done</button></div>`;
+  pop.querySelectorAll("[data-date]").forEach(b=>b.onclick=()=>{ setEntryDate(b.dataset.date); closeDatePicker(); });
+  pop.querySelectorAll("[data-dp-step]").forEach(b=>b.onclick=()=>{
+    DP_VIEW=new Date(DP_VIEW.getFullYear(), DP_VIEW.getMonth()+Number(b.dataset.dpStep), 1); renderDatePicker(); });
+  pop.querySelector("[data-dp-today]").onclick=()=>{ DP_VIEW=null; setEntryDate(todayISO); closeDatePicker(); };
+  pop.querySelector("[data-dp-done]").onclick=closeDatePicker;
+}
+function openDatePicker(){
+  DP_VIEW=null;
+  $("entryDatePick").classList.add("open"); $("entryDateBtn").setAttribute("aria-expanded","true");
+  renderDatePicker();
+}
+function closeDatePicker(){
+  $("entryDatePick").classList.remove("open"); $("entryDateBtn").setAttribute("aria-expanded","false");
+}
+function initDatePicker(){
+  const wrap=$("entryDatePick");
+  if(!wrap.querySelector(".datepick-pop")){
+    const pop=document.createElement("div");
+    pop.className="datepick-pop"; pop.id="entryDatePop"; pop.setAttribute("role","dialog"); pop.setAttribute("aria-label","Choose date");
+    wrap.appendChild(pop);
+  }
+  $("entryDateBtn").onclick=()=>wrap.classList.contains("open")?closeDatePicker():openDatePicker();
+  document.addEventListener("click",e=>{ if(wrap.classList.contains("open")&&!wrap.contains(e.target)) closeDatePicker(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&wrap.classList.contains("open")){ closeDatePicker(); $("entryDateBtn").focus(); } });
+}
+
 function openComposer(type,entryId){
   const entry=entryId?MANUAL_ENTRIES.find(row=>row.id===entryId):null; COMPOSER.id=entry?.id||null; COMPOSER.type=entry?.entry_type||type||"expense";
-  COMPOSER.category=entry?.category||""; COMPOSER.expression=String(entry?.amount||0); $("entryDate").value=entry?.date||new Date().toISOString().slice(0,10);
+  COMPOSER.category=entry?.category||""; COMPOSER.expression=String(entry?.amount||0); closeDatePicker(); setEntryDate(entry?.date||dpISO(new Date()));
   $("entryName").value=entry?.name||""; $("entryAccount").value=entry?.account||"Manual"; $("entryNote").value=entry?.note||"";
   $("entryComposerTitle").textContent=`${entry?'Edit':'New'} ${COMPOSER.type}`; $("saveEntry").textContent=`Save ${COMPOSER.type}`;
   $("saveEntry").className=`composer-save ${COMPOSER.type}`; $("deleteEntry").hidden=!entry; renderCalculator();renderComposerCategories();
@@ -2882,12 +3053,11 @@ async function saveManualEntry(){
   const allowed=COMPOSER.type==="income"?INCOME_CATEGORIES:EXPENSE_CATEGORIES;
   if(!Number.isFinite(amount)||amount<=0){showToast("Enter an amount greater than zero.","err");return;}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(`${date}T00:00:00`))){showToast("Choose a valid date.","err");return;}
-  if(!name){$("entryName").focus();showToast("Add a name or source.","err");return;}
   if(name.length>160){showToast("Names must be 160 characters or fewer.","err");return;}
   if(!allowed.includes(COMPOSER.category))COMPOSER.category=allowed[0]||"Other";
   ENTRY_SAVING=true; $("saveEntry").disabled=true;
   const now=new Date().toISOString(), original=MANUAL_ENTRIES.map(row=>({...row})); const id=COMPOSER.id||crypto.randomUUID();
-  const entry={id,entry_type:COMPOSER.type,date,amount,name,category:COMPOSER.category,account:$("entryAccount").value.trim()||"Manual",note:$("entryNote").value.trim(),currency:"CAD",created_at:original.find(r=>r.id===id)?.created_at||now,updated_at:now};
+  const entry={id,entry_type:COMPOSER.type,date,amount,name:name||COMPOSER.category||(COMPOSER.type==="income"?"Income":"Expense"),category:COMPOSER.category,account:$("entryAccount").value.trim()||"Manual",note:$("entryNote").value.trim(),currency:"CAD",created_at:original.find(r=>r.id===id)?.created_at||now,updated_at:now};
   const index=MANUAL_ENTRIES.findIndex(row=>row.id===id); if(index>=0)MANUAL_ENTRIES[index]=entry;else MANUAL_ENTRIES.push(entry); mergeManualData();renderMobile();closeComposer();
   try{
     if(sb&&CURRENT_USER){const payload={...entry,user_id:CURRENT_USER.id};const query=COMPOSER.id?sb.from("exp_manual_entries").update(payload).eq("id",id):sb.from("exp_manual_entries").insert(payload);const {data,error}=await query.select().single();if(error)throw error;const pos=MANUAL_ENTRIES.findIndex(r=>r.id===id);if(pos>=0)MANUAL_ENTRIES[pos]=data;}
@@ -2909,6 +3079,7 @@ function initMobileShell(){
   $("mobilePeriodPrev").onclick=()=>shiftMobileRange(-1);$("mobilePeriodNext").onclick=()=>shiftMobileRange(1);
   $("mobileCustomFrom").onchange=()=>{MOBILE_RANGE.customFrom=$("mobileCustomFrom").value;renderMobile();};$("mobileCustomTo").onchange=()=>{MOBILE_RANGE.customTo=$("mobileCustomTo").value;renderMobile();};
   $("closeComposer").onclick=closeComposer;$("saveEntry").onclick=saveManualEntry;$("deleteEntry").onclick=deleteManualEntry;
+  initDatePicker();
   const keys=["7","8","9","÷","4","5","6","×","1","2","3","-",".","0","⌫","+"];
   $("calculatorPad").innerHTML=keys.map(key=>`<button type="button" class="calc-key ${/[÷×+\-]/.test(key)?'operator':''}" data-key="${key}">${key}</button>`).join("")+`<button type="button" class="calc-key operator" data-key="=" style="grid-column:1/-1">=</button>`;
   $("calculatorPad").querySelectorAll("[data-key]").forEach(button=>button.onclick=()=>{const key=button.dataset.key;if(key==="⌫")COMPOSER.expression=COMPOSER.expression.length>1?COMPOSER.expression.slice(0,-1):"0";else if(key==="=")COMPOSER.expression=String(calcExpression(COMPOSER.expression));else if(/[÷×+\-]/.test(key)&&/[÷×+\-]$/.test(COMPOSER.expression))COMPOSER.expression=COMPOSER.expression.slice(0,-1)+key;else COMPOSER.expression=COMPOSER.expression==="0"&&!/[.÷×+\-]/.test(key)?key:COMPOSER.expression+key;renderCalculator();});
