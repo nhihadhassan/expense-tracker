@@ -183,10 +183,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
     padding:16px 18px; margin:20px 0 22px;
   }
-  .analytics-quickbar{display:none;align-items:center;gap:4px;width:max-content;padding:4px;border:1px solid var(--line);border-radius:999px;background:var(--raised);margin:0 0 24px auto}
+  .analytics-quickbar{display:flex;align-items:center;gap:4px;width:max-content;padding:4px;border:1px solid var(--line);border-radius:999px;background:var(--raised);margin:0 0 24px auto}
   .analytics-quickbar button{min-width:64px;min-height:40px;padding:0 14px;color:var(--muted);border:0;border-radius:999px;background:transparent;font-weight:700;cursor:pointer}
   .analytics-quickbar button.active{color:var(--text);background:rgba(124,92,255,.2)}
-  body.analytics-view .controls{display:none} body.analytics-view .analytics-quickbar{display:flex}
+  .controls{display:none}
   @media(min-width:861px){body:not(.mobile-custom) .wrap{zoom:.94}}
   .field{display:flex; flex-direction:column; gap:6px}
   .field label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px}
@@ -488,6 +488,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   @media(max-width:640px){
     .wrap,.controls,.grid,.kpis,.card,.header-row{width:100%; max-width:100%; min-width:0}
     .wrap{padding:20px 14px 42px}
+    .analytics-quickbar{width:100%;justify-content:space-between;margin:0 0 18px}.analytics-quickbar button{flex:1;min-width:0}
     .header-actions{width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr))}
     #uploadStatus{grid-column:1 / -1}
     #uploadWrap{min-width:0}
@@ -1026,11 +1027,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     <button class="btn" id="presetToggle" type="button">Jump to month ▾</button>
     <div class="presets collapsed" id="presets"></div>
   </div>
-  <div class="analytics-quickbar" id="analyticsQuickbar" aria-label="Analytics time period">
-    <button type="button" data-analytics-period="1M" class="active">1M</button>
+  <div class="analytics-quickbar" id="analyticsQuickbar" aria-label="Dashboard time period">
+    <button type="button" data-analytics-period="1M">1M</button>
     <button type="button" data-analytics-period="3M">3M</button>
     <button type="button" data-analytics-period="YTD">YTD</button>
-    <button type="button" data-analytics-period="ALL">ALL</button>
+    <button type="button" data-analytics-period="ALL" class="active">ALL</button>
   </div>
 
   <div class="accountbar" id="accountbar">
