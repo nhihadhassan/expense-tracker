@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 import ingest
 
 MAX_UPLOAD_BYTES = 4 * 1024 * 1024
-OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "you@example.com").lower()
+OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "").lower()
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 PUBLISHABLE_KEY = os.environ.get("SUPABASE_PUBLISHABLE_KEY", "")
 SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY", "")

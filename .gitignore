@@ -26,6 +26,8 @@ Tangerine/*
 !Tangerine/normalize_tangerine.py
 BMO/*
 !BMO/
+# Only the normalizer script itself -- it carries synthetic sample rows.
+# Never un-ignore a file containing transcribed real statement data.
 !BMO/build_bmo_md.py
 *.pdf
 *.csv

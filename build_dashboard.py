@@ -61,10 +61,14 @@ def build_html(records, statements, chequing=None, payments=None):
 
 
 # Hosted (Vercel) build: empty baked data, Supabase config + SDK, auth gate active.
-SUPABASE_URL = "https://zgafubhzhxikuknihmnu.supabase.co"
-SUPABASE_ANON = "sb_publishable_REDACTED"
-OWNER_EMAIL = "you@example.com"
-SITE_URL = "https://expense-tracker-sooty-six-38.vercel.app/"   # canonical public URL
+# Hosted config comes from the environment so no deployment-specific values are
+# committed. SUPABASE_URL/ANON are publishable by design (they ship to the browser),
+# but they still belong in env so forks point at their own project. OWNER_EMAIL is a
+# client-side convenience gate only -- the real restriction is the Supabase RLS policy.
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_ANON = os.environ.get("SUPABASE_PUBLISHABLE_KEY", "")
+OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "")
+SITE_URL = os.environ.get("SITE_URL", "")   # canonical public URL
 WEB_DIR = os.path.join(HERE, "web")
 SUPA_SDK_TAG = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
 

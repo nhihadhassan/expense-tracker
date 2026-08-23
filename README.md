@@ -7,10 +7,10 @@ Everything runs on your machine — no accounts, no cloud, no data leaves your c
 
 **Live demo (app shell):** https://expense-tracker-sooty-six-38.vercel.app
 
-> Privacy: this repository contains **code only**. All raw and generated financial data
-> (statement PDFs/CSVs, the SQLite DB, and the baked dashboard HTML) is git-ignored and
-> stays on your machine. The figures shown in the README are illustrative, not real
-> account data.
+> **Privacy:** this repository ships **code plus a small synthetic sample dataset** so it
+> runs out of the box. Real financial data never belongs here: statement PDFs/CSVs, the
+> SQLite DB, and any transcribed statements are git-ignored and stay on your machine.
+> Every figure, merchant, and card number in this repo is fabricated sample data.
 
 ## Two ways to run it
 

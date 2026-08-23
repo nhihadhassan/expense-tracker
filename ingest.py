@@ -259,7 +259,7 @@ MERCHANTS += [
     ("FAMOUS PLAYER", "Famous Players", "Entertainment"),
     ("SAUBLE FALLS", "Sauble Falls Park", "Entertainment"),
     ("ERNIES SPORTS", "Ernie's Sports Experts", "Shopping"),
-    ("SAMPLE MERCHANT", "Levi's", "Shopping"),
+    ("LEVI", "Levi's", "Shopping"),
     ("KITCHEN MARKET", "Kitchen Market", "Food & Dining"),
     ("FAROOJ", "Farooj", "Food & Dining"),
 ]
