@@ -1,5 +1,5 @@
-# Deploy ONLY web/ (the auth-gated shell). Everything below stays local —
-# it contains real financial data / source statements and must never be uploaded.
+# Exclude every local financial source. The hosted build receives application
+# source plus the empty-shell generator, never statements or generated exports.
 Scotiabank 2026 e-statements/
 Tangerine/
 amex/
@@ -16,6 +16,7 @@ expense-dashboard.html
 !api/
 !api/**/*.py
 !ingest.py
+!build_dashboard.py
 !Tangerine/
 Tangerine/*
 !Tangerine/normalize_tangerine.py
