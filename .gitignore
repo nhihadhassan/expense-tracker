@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 node_modules/
 web-react/
+web/app/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
@@ -40,6 +41,10 @@ BMO/*
 # Local baked-data exports
 expense-dashboard.html
 expense-dashboard.pdf
+EXPENSES_EXPORT.md
+data/*.json
+public/data/*.json
+web/data/*.json
 
 # Supabase CLI state and migration history belonging to other apps that share
 # the rachel-tracker project. Keep only this app's migration in Git.
@@ -48,6 +53,7 @@ supabase/migrations/*.sql
 !supabase/migrations/20260701020000_dashboard_admin_imports.sql
 !supabase/migrations/20260701023000_import_dedupe_constraints.sql
 !supabase/migrations/20260805013000_mobile_manual_entries.sql
+!supabase/migrations/20260902010000_private_shared_profiles.sql
 
 # Personal launch helpers
 com.expensetracker.server.plist

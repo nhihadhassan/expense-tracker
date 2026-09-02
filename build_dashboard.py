@@ -10,8 +10,11 @@ Usage:  python3 build_dashboard.py
 Output: expense-dashboard.html  (open it in any browser)
 """
 
+import argparse
+import base64
 import json
 import os
+import shutil
 from collections import defaultdict
 
 # All PDF parsing, merchant mapping, FX handling, and analytics live in the
@@ -20,6 +23,68 @@ from ingest import parse_dir, load_all, DEFAULT_PDF_DIR
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_HTML = os.path.join(HERE, "expense-dashboard.html")
+
+# Material Symbols, subset to the ~51 ligatures this dashboard actually uses (7KB
+# rather than the 3.7MB full variable font). Inlined as a data: URI so the icons
+# need no network round trip: loading them from the Google CDN meant they rendered
+# as fallback colour emoji until the font arrived, and never resolved at all
+# offline, where the service worker serves the shell from cache.
+# Regenerate with the icon_names= parameter on the Google Fonts css2 endpoint.
+ICON_FONT = os.path.join(HERE, "assets", "material-symbols-subset.woff2")
+# The exact icon_names= list the woff2 was generated from, so the build can tell
+# when the template starts using an icon the font doesn't carry.
+ICON_MANIFEST = os.path.join(HERE, "assets", "material-symbols-subset.txt")
+
+
+def template_icon_names():
+    """Every Material Symbols ligature the template can render."""
+    import re
+    names = set()
+    src = HTML_TEMPLATE
+    for m in re.finditer(r'material-symbols-outlined[^>]*>\s*([a-z][a-z_0-9]*)\s*<', src):
+        names.add(m.group(1))
+    # Any quoted snake_case literal inside an interpolated icon slot, which covers
+    # both `${ICONS[x]||'fallback'}` and `${up?"trending_up":"trending_down"}`.
+    for m in re.finditer(r'material-symbols-outlined[^>]*>\$\{([^}]*)\}', src):
+        # Drop comparison operands first: in ${v==="light"?"light_mode":"dark_mode"}
+        # the icons are the ternary branches, and "light" is not an icon at all --
+        # requesting it makes the Google Fonts endpoint 400 the whole subset.
+        expr = re.sub(r'[=!]==?\s*[\'"][^\'"]*[\'"]', '', m.group(1))
+        names.update(re.findall(r'[\'"]([a-z][a-z_0-9]{2,})[\'"]', expr))
+    for table in re.findall(r'(?:CAT_ICONS|INCOME_ICONS|ICONS)\s*=\s*\{(.*?)\n\s*\};', src, re.S):
+        names.update(re.findall(r':\s*"([a-z][a-z_0-9]*)"', table))
+    for m in re.finditer(r'cards\.push\(\[\s*"[a-z]*"\s*,\s*"([a-z][a-z_0-9]*)"', src):
+        names.add(m.group(1))
+    return names
+
+
+def icon_font_face():
+    if not os.path.exists(ICON_FONT):
+        return ""
+    with open(ICON_FONT, "rb") as f:
+        raw = f.read()
+    # A ligature missing from the subset falls back to a colour emoji, which is easy
+    # to miss in review. The names can't be read back out of the compressed woff2, so
+    # compare against the manifest the font was generated from.
+    if os.path.exists(ICON_MANIFEST):
+        with open(ICON_MANIFEST) as f:
+            shipped = set(f.read().split())
+        missing = sorted(template_icon_names() - shipped)
+        if missing:
+            print(f"WARNING: {len(missing)} icon(s) not in the subset: {', '.join(missing)}")
+            print(f"  Add them to {os.path.basename(ICON_MANIFEST)} and regenerate the woff2 via")
+            print("  fonts.googleapis.com/css2?family=Material+Symbols+Outlined:...&icon_names=<list>")
+    b64 = base64.b64encode(raw).decode("ascii")
+    return ("@font-face{font-family:'Material Symbols Outlined';font-style:normal;"
+            "font-weight:400;font-display:block;"
+            f"src:url(data:font/woff2;base64,{b64}) format('woff2')}}")
+
+
+def fill_template(**subs):
+    html = HTML_TEMPLATE.replace("/*__ICONFONT__*/", icon_font_face())
+    for key, value in subs.items():
+        html = html.replace(key, value)
+    return html
 
 
 # --- Reporting --------------------------------------------------------------
@@ -48,12 +113,13 @@ def report(records):
 
 # --- HTML generation --------------------------------------------------------
 def build_html(records, statements, chequing=None, payments=None):
-    html = (HTML_TEMPLATE
+    html = (fill_template()
             .replace("/*__DATA__*/", json.dumps(records, separators=(",", ":")))
             .replace("/*__STATEMENTS__*/", json.dumps(statements, separators=(",", ":")))
             .replace("/*__CHEQUING__*/", json.dumps(chequing or [], separators=(",", ":")))
             .replace("/*__PAYMENTS__*/", json.dumps(payments or [], separators=(",", ":")))
             .replace("/*__SUPA__*/", "null")          # local build: no Supabase
+            .replace("__CANONICAL_URL__", CANONICAL_URL)
             .replace("<!--SUPA_SDK-->", ""))
     with open(OUT_HTML, "w") as f:
         f.write(html)
@@ -61,35 +127,75 @@ def build_html(records, statements, chequing=None, payments=None):
 
 
 # Hosted (Vercel) build: empty baked data, Supabase config + SDK, auth gate active.
-# Hosted config comes from the environment so no deployment-specific values are
-# committed. SUPABASE_URL/ANON are publishable by design (they ship to the browser),
-# but they still belong in env so forks point at their own project. OWNER_EMAIL is a
-# client-side convenience gate only -- the real restriction is the Supabase RLS policy.
+# The publishable client config stays environment-specific so forks never inherit
+# this project's backend. Authorization remains enforced by Supabase RLS.
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_ANON = os.environ.get("SUPABASE_PUBLISHABLE_KEY", "")
 OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "")
-SITE_URL = os.environ.get("SITE_URL", "")   # canonical public URL
+SITE_URL = os.environ.get("SITE_URL", "")
 WEB_DIR = os.path.join(HERE, "web")
-SUPA_SDK_TAG = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
+CANONICAL_URL = (SITE_URL or "https://expense-tracker-sooty-six-38.vercel.app").rstrip("/")
+SUPA_SDK_TAG = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.1/dist/umd/supabase.min.js"></script>'
+
+ROBOTS_TXT = """User-agent: *
+Disallow: /
+"""
+
+NOT_FOUND_HTML = r"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#07182c">
+  <title>Page not found · Expense Tracker</title>
+  <link rel="icon" href="/favicon.svg">
+  <style>
+    :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:#051424;color:#e7eefb}
+    *{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 10%,#163451 0,#071b30 38%,#051424 72%)}
+    main{width:min(100%,620px);padding:clamp(28px,7vw,56px);border:1px solid rgba(255,255,255,.12);border-radius:24px;background:rgba(18,33,49,.94);box-shadow:0 30px 80px rgba(0,0,0,.34);text-align:center}
+    .mark{width:64px;height:64px;display:grid;place-items:center;margin:0 auto 24px;border-radius:18px;background:#102a40;border:1px solid rgba(255,255,255,.12)}
+    .mark svg{width:42px;height:42px}.eyebrow{margin:0 0 10px;color:#4edea3;font-size:.78rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    h1{margin:0;font-size:clamp(2rem,7vw,3.4rem);line-height:1.03;letter-spacing:-.045em}p{margin:18px auto 28px;max-width:42ch;color:#a8b5c8;line-height:1.65}
+    a{min-height:48px;display:inline-flex;align-items:center;justify-content:center;padding:0 20px;border-radius:12px;background:#4edea3;color:#062019;font-weight:800;text-decoration:none}a:focus-visible{outline:3px solid #bba8ff;outline-offset:4px}
+    @media(prefers-reduced-motion:no-preference){main{animation:arrive .45s ease-out both}@keyframes arrive{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="23" stroke="#19354a" stroke-width="8"/><path d="M32 9a23 23 0 1 1-20.8 13.2" stroke="#4edea3" stroke-width="8" stroke-linecap="round"/><path d="M14.5 19.8A23 23 0 0 1 27 9.6" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/><circle cx="32" cy="32" r="12" fill="#0b2033"/><path d="M32 20v12l9 5" stroke="#dfffee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <p class="eyebrow">404 · Out of balance</p>
+    <h1>This page didn’t reconcile.</h1>
+    <p>The ledger is intact; this route doesn’t exist.</p>
+    <a href="/">Back to Expense Tracker</a>
+  </main>
+</body>
+</html>
+"""
 
 
 def build_web():
-    supa = json.dumps({"url": SUPABASE_URL, "key": SUPABASE_ANON,
-                       "email": OWNER_EMAIL, "site": SITE_URL})
-    html = (HTML_TEMPLATE
+    supa = (json.dumps({"url": SUPABASE_URL, "key": SUPABASE_ANON,
+                        "email": OWNER_EMAIL, "site": SITE_URL})
+            if SUPABASE_URL and SUPABASE_ANON else "null")
+    html = (fill_template()
             .replace("/*__DATA__*/", "[]").replace("/*__STATEMENTS__*/", "[]")
             .replace("/*__CHEQUING__*/", "[]").replace("/*__PAYMENTS__*/", "[]")
             .replace("/*__SUPA__*/", supa)
+            .replace("__CANONICAL_URL__", CANONICAL_URL)
             .replace("<!--SUPA_SDK-->", SUPA_SDK_TAG))
     os.makedirs(WEB_DIR, exist_ok=True)
     with open(os.path.join(WEB_DIR, "index.html"), "w") as f:
         f.write(html)
-    # The React shell links to this during the incremental migration so every
-    # established analytics/admin capability stays reachable. It is generated
-    # from the same source, has the same owner auth, and is not a data cache.
-    os.makedirs(os.path.join(HERE, "public"), exist_ok=True)
-    with open(os.path.join(HERE, "public", "legacy.html"), "w") as f:
-        f.write(html)
+    with open(os.path.join(WEB_DIR, "404.html"), "w") as f:
+        f.write(NOT_FOUND_HTML)
+    with open(os.path.join(WEB_DIR, "robots.txt"), "w") as f:
+        f.write(ROBOTS_TXT)
+    for name in ("favicon.svg", "manifest.webmanifest", "sw.js", "icon-192.png",
+                 "icon-512.png", "apple-touch-icon.png", "social-card.png"):
+        source = os.path.join(HERE, "public", name)
+        if os.path.exists(source):
+            shutil.copyfile(source, os.path.join(WEB_DIR, name))
     print(f"Wrote {os.path.join(WEB_DIR, 'index.html')} (hosted, auth-gated)")
 
 
@@ -97,8 +203,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nhihad's Expense Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard · Expense Tracker</title>
+<meta name="description" content="A private personal finance workspace for reviewing spending, cash flow, accounts, and plans.">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="canonical" href="__CANONICAL_URL__/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Expense Tracker">
+<meta property="og:description" content="A private personal finance workspace.">
+<meta property="og:url" content="__CANONICAL_URL__/">
+<meta property="og:image" content="__CANONICAL_URL__/social-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Expense Tracker">
+<meta name="twitter:description" content="A private personal finance workspace.">
+<meta name="twitter:image" content="__CANONICAL_URL__/social-card.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#07182c" media="(prefers-color-scheme: dark)">
@@ -111,7 +229,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
 <!--SUPA_SDK-->
 <style>
   :root{
@@ -300,13 +419,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .btn.primary{background:var(--accent); border-color:var(--accent); color:oklch(98% .006 286)}
   .header-row{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; padding-bottom:10px}
   .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-left:auto}
-  .profile-switch{display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:0 12px;
+  .profile-switch{display:inline-flex; align-items:center; gap:7px; min-height:44px; padding:0 12px;
     border:1px solid var(--line); border-radius:999px; background:var(--panel-2); color:var(--text); cursor:pointer}
   .profile-switch:hover{border-color:var(--line-strong)}
   .profile-switch .material-symbols-outlined{font-size:19px; color:var(--muted)}
   .profile-switch select{border:0; background:transparent; color:inherit; font-size:13px; font-weight:700;
     cursor:pointer; padding:0; min-width:0}
   body.guest-profile .money-dock{display:none}
+  body.guest-profile #adminNav,body.guest-profile #sbAdmin,body.guest-profile #mobileImport,
+  body.guest-profile #mobileCashflowImport,body.guest-profile #mobileActivityImport,
+  body.guest-profile #mobileOpenAdmin,body.guest-profile [data-entry-type],
+  body.guest-profile .goal-add,body.guest-profile #resetBudgets,body.guest-profile #addSubBtn,
+  body.guest-profile #subName,body.guest-profile #subAmount,body.guest-profile #subCadence,
+  body.guest-profile #subCat,body.guest-profile [data-del]{display:none !important}
+  body.guest-profile #budgets input,body.guest-profile #goals input,body.guest-profile #incomeInput{pointer-events:none}
   .guest-banner{display:none; align-items:center; gap:10px; margin:0 0 14px; padding:10px 14px;
     border:1px solid var(--line-strong); border-radius:12px; background:var(--panel-2);
     color:var(--muted); font-size:13px}
@@ -518,7 +644,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   #authgate.show{display:flex}
   .auth-box{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:36px 32px;
     width:100%; max-width:400px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.4)}
-  .auth-box .auth-ic{font-size:44px}
+  .auth-box .auth-ic{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border:1px solid var(--line);border-radius:18px;background:#102a40}
+  .auth-box .auth-ic svg{width:42px;height:42px}
   .auth-box h1{margin:10px 0 6px; font-size:24px}
   .auth-sub{color:var(--muted); font-size:13.5px; line-height:1.5; margin:0 0 20px}
   .auth-box input{width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
@@ -529,7 +656,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   @media(max-width:860px){.kpis{grid-template-columns:1fr 1fr} .grid{grid-template-columns:1fr}
     .budget-row{grid-template-columns:120px 1fr; } .budget-nums{grid-column:1 / -1; text-align:left}
     .admin-grid{grid-template-columns:1fr}.admin-section.wide{grid-column:auto}}
-  @media(max-width:640px){
+  @media(max-width:767px){
     .wrap,.controls,.grid,.kpis,.card,.header-row{width:100%; max-width:100%; min-width:0}
     .wrap{padding:20px 14px 42px}
     .analytics-quickbar{width:100%;justify-content:space-between;margin:0 0 18px}.analytics-quickbar button{flex:1;min-width:0}
@@ -548,20 +675,34 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .acct-chip{width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis}
     .kpis{grid-template-columns:1fr}
     .admin-head{align-items:flex-start; flex-direction:column}
-    .admin-panel-row{grid-template-columns:44px minmax(0,1fr) 104px 104px 44px}
-    .admin-panel-row [data-down]{display:none}
+    /* The desktop row is 418px of fixed track against ~297px of content width, so
+       the name column collapsed to 0px and became an unreadable sliver. Restack it
+       as a two-line card: title on top, controls underneath.
+       [data-down] used to be display:none here, which left a phone user able to
+       move a panel up but never down -- and HTML5 drag reorder does not work on
+       touch at all, so the arrows are the only reorder affordance there. */
+    .admin-panel-row{grid-template-columns:1fr 1fr 44px 44px;
+      grid-template-areas:"name name name name" "page display up down"; gap:8px; align-items:center}
+    .admin-panel-row .drag-handle{display:none}   /* HTML5 drag is desktop-only */
+    .admin-panel-name{grid-area:name; white-space:normal; font-weight:700}
+    .admin-panel-row .admin-page{grid-area:page}
+    .admin-panel-row .admin-display{grid-area:display}
+    .admin-panel-row [data-up]{grid-area:up}
+    .admin-panel-row [data-down]{grid-area:down; display:inline-flex}
+    .admin-panel-row .admin-state{min-height:44px}
+    .admin-panel-row .admin-icon{min-height:44px; width:44px}
     .preview-kpis{grid-template-columns:1fr 1fr}
     .card{padding:15px}
     .card.full{grid-column:auto}
     .analytics-kpis{grid-template-columns:1fr 1fr; gap:9px}
     .analytics-kpi{padding:11px 12px}
     .analytics-kpi .value{font-size:18px}
-    .analytics-table{min-width:620px}
     .chartbox{height:270px}
     .chartbox.tall{height:310px}
     th,td{padding:10px 9px}
-    #txtable{min-width:620px}
-    #recurtable,#rulestable{min-width:760px}
+    /* The min-width rules that used to live here (620px on .analytics-table and
+       #txtable, 760px on #recurtable/#rulestable) forced sideways scrolling inside
+       a nested scroll box. .cardify replaces them -- see the mobile primitives. */
     #dropzone .dz-box{margin:18px; padding:40px 28px}
   }
   @media(prefers-reduced-motion:reduce){
@@ -571,10 +712,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     #accountchips{grid-template-columns:1fr}
   }
 
-  /* ===================== Nhihad theme ===================== */
+  /* ===================== Product theme ===================== */
   h1,h2,.kpi .value,.recur-kpi .value,.hero-balance,.admin-head h2,.sb-brand{
     font-family:"Montserrat","Inter",sans-serif; letter-spacing:-.012em;
   }
+/*__ICONFONT__*/
   .material-symbols-outlined{
     font-family:"Material Symbols Outlined"; font-weight:normal; font-style:normal;
     font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 24;
@@ -646,7 +788,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     #sidebar{display:flex}
     .wrap{margin-left:250px; margin-right:0; max-width:1560px; padding:30px 30px 60px}
   }
-  @media(max-width:640px){
+  @media(max-width:767px){
     .hero-card{padding:22px; flex-direction:column; align-items:flex-start}
     .hero-balance{font-size:36px}
     .hero-actions{width:100%}
@@ -664,7 +806,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .ptab:hover{color:var(--text)}
   .ptab.active{color:#fff; background:linear-gradient(135deg,#8b5cf6,#a855f7);
     box-shadow:0 8px 20px -8px rgba(139,92,246,.6)}
-  @media(max-width:640px){
+  @media(max-width:767px){
     .pagetabs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border-radius:16px; overflow:visible}
     .ptab{min-height:44px; justify-content:center; white-space:normal; padding:10px 8px; text-align:center}
     .ptab .material-symbols-outlined{font-size:20px}
@@ -747,7 +889,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .wallet-card .wc-util{position:relative; z-index:1; height:5px; border-radius:5px; background:rgba(255,255,255,.25); overflow:hidden; margin-top:8px}
   .wallet-card .wc-util > i{display:block; height:100%; background:#fff; border-radius:5px}
   .wallet-card .wc-line{position:relative; z-index:1; display:flex; justify-content:space-between; font-size:11px; opacity:.9; margin-top:6px}
-  @media(max-width:1120px) and (min-width:701px){.wallet-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(max-width:1120px) and (min-width:768px){.wallet-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
   .mobile-wallet-strip{display:none}
 
   /* panel header collapse toggle (no admin needed) */
@@ -811,6 +953,16 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .mobile-donut-wrap canvas{width:100% !important; height:320px !important}
   .mobile-donut-center{position:absolute; inset:50% auto auto 50%; transform:translate(-50%,-50%); width:150px; height:150px;
     display:flex; flex-direction:column; justify-content:center; gap:6px; pointer-events:none; text-align:center; background:var(--panel); border-radius:50%}
+  /* donut hover readout — HTML so it can sit above the center overlay instead of
+     being painted inside the canvas and clipped by it */
+  .donut-tip{position:absolute; z-index:6; display:flex; align-items:center; gap:7px;
+    padding:7px 11px; border:1px solid var(--line-strong); border-radius:10px; background:var(--panel-2);
+    color:var(--text); font-size:12.5px; font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums;
+    box-shadow:0 14px 34px rgba(0,0,0,.5); pointer-events:none; opacity:0;
+    transform:translate(-50%,-132%); transition:opacity .12s var(--ease-out)}
+  .donut-tip.below{transform:translate(-50%,32%)}
+  .donut-tip .dot{flex:0 0 9px}
+  .donut-tip .tip-share{color:var(--muted); font-weight:600}
   .mobile-cash-row{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted)}
   .mobile-cash-row b{font-size:15px; font-variant-numeric:tabular-nums; color:var(--text)}
   .mobile-cash-row.in b{color:var(--success)} .mobile-cash-row.out b{color:var(--danger)}
@@ -839,7 +991,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     transition:opacity .15s var(--ease-out), transform .18s var(--ease-out)}
   .cat-ring-item:hover .cat-ring-amt, .cat-ring-item:focus-visible .cat-ring-amt, .cat-ring-item.active .cat-ring-amt{
     opacity:1; transform:translate(-50%,-100%) translateY(-2px)}
-  @media(max-width:640px){
+  @media(max-width:767px){
     .donut-stage .mobile-donut-wrap{width:min(62%,260px)}
     .cat-ring-icon{width:28px; height:28px} .cat-ring-icon .material-symbols-outlined{font-size:16px}
     .cat-ring-pct{font-size:10.5px}
@@ -864,6 +1016,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .category-transaction span:first-child{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .category-transaction b{white-space:nowrap}
   .mobile-activity-list{display:flex; flex-direction:column; gap:8px}
+  .mobile-activity-more{display:flex; flex-direction:column; align-items:center; gap:2px; min-height:52px;
+    margin-top:4px; padding:10px 16px; border:1px solid var(--line); border-radius:16px;
+    background:var(--panel); color:var(--text); font-family:inherit; font-size:14px; font-weight:700; cursor:pointer}
+  .mobile-activity-more small{color:var(--muted); font-size:12px; font-weight:500}
+  .mobile-activity-count{margin:6px 0 0; color:var(--muted); font-size:12px; font-weight:600; text-align:center}
   .mobile-activity-row{display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:11px; align-items:center;
     min-height:66px; padding:10px 12px; background:var(--panel); border:1px solid var(--line); border-radius:16px}
   .mobile-activity-row.manual{cursor:pointer}.activity-title{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
@@ -945,14 +1102,133 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .csv-mapper-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.csv-mapper label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
   .csv-mapper input,.csv-mapper select{min-height:44px;border:1px solid var(--line);border-radius:11px;background:var(--panel);color:var(--text);padding:9px}
 
-  @media(max-width:700px){
+  .tx-search{display:flex; align-items:center; gap:9px; margin:0 0 14px; padding:0 13px;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px}
+  .tx-search .material-symbols-outlined{font-size:19px; color:var(--muted); flex:0 0 auto}
+  .tx-search input{flex:1; min-width:0; min-height:46px; border:0; background:transparent;
+    color:var(--text); font-family:inherit; font-size:15px; outline:none}
+  .tx-search input::placeholder{color:var(--soft)}
+  .tx-search:focus-within{border-color:var(--accent)}
+
+  /* ===== mobile primitives ===== */
+  /* Sort control for card-ified tables, whose <thead> is not visible. Phone only --
+     on desktop the sortable column headers are still the affordance. */
+  .mobile-sortbar{display:none}
+  @media(max-width:767px){
+    .mobile-sortbar{display:flex; align-items:center; gap:8px; margin:0 0 12px}
+    .mobile-sortbar label{color:var(--muted); font-size:12px; font-weight:600}
+    .mobile-sortbar select{flex:1; min-height:44px; border:1px solid var(--line); border-radius:11px;
+      background:var(--panel); color:var(--text); padding:0 10px; font-family:inherit; font-size:14px}
+    .mobile-sortbar button{width:44px; min-height:44px; border:1px solid var(--line); border-radius:11px;
+      background:var(--panel); color:var(--text); font-size:16px; cursor:pointer}
+    #transactionsCard .hint{display:none}   /* "Click a column header to sort" */
+  }
+  /* 44px baseline. PRODUCT.md targets WCAG 2.2 AA and names "tiny controls" as an
+     anti-reference; these were the measured offenders on the mobile screens. */
+  @media(max-width:767px){
+    /* Blanket rule rather than a list of the offenders found today, so a control
+       added later can't quietly land under the minimum. */
+    .mobile-screen input:not([type=checkbox]):not([type=radio]),
+    .mobile-screen select,.mobile-screen button,
+    .budget-input,.goal-input,.cat-select,.admin-state,.linkbtn,.btn{min-height:44px}
+    .budget-input,.goal-input{width:96px; padding:6px 10px; font-size:15px}
+    .icon-btn{width:44px; height:44px}
+    .fchip .x{min-width:32px; min-height:32px; padding:4px 8px}
+    .datepick-nav button{width:44px; height:44px}
+    .datepick-grid button{aspect-ratio:auto; min-height:42px}
+    .linkbtn{padding:10px 8px}
+    th{min-height:44px}
+    /* The goal row packed an input, a percentage, an ETA and a Del button onto one
+       white-space:nowrap line, which overflowed at 375px. Let it wrap. */
+    .goal-nums{white-space:normal; display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+    /* 15x15 heatmap cells are a third of a tap target and their value lives only in
+       a title attribute, which a touch user can never see. Enlarge and let the
+       existing tap-to-filter be the interaction. */
+    .cal-cell{width:30px; height:30px; border-radius:7px}
+    .cal-grid{grid-template-rows:repeat(7,30px); grid-auto-columns:30px}
+    .cal-months{gap:18px}
+    /* Eleven labelled selects two-across at 375px. This has to live after the base
+       .csv-mapper-grid rule, which is declared further down the sheet. */
+    .csv-mapper-grid{grid-template-columns:1fr}
+
+    /* Active filters read as a state banner on a phone, not a quiet desktop strip:
+       a filter here can empty the whole screen, so it has to be obvious and
+       clearable without hunting. */
+    .mobile-screen .filterbar{margin:0 0 14px; padding:11px 12px; gap:8px;
+      background:color-mix(in srgb,var(--accent) 10%,var(--panel));
+      border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); border-radius:16px}
+    .mobile-screen .filterbar .lbl{width:100%; margin-bottom:2px; color:var(--accent-strong)}
+    .mobile-screen .fchip{min-height:36px; padding:5px 6px 5px 11px; font-size:13px}
+    .mobile-screen .fchip .x{display:inline-flex; align-items:center; justify-content:center;
+      min-width:30px; min-height:30px; margin-left:2px; border-radius:9px; background:var(--panel-2)}
+    .mobile-screen .fclear{min-height:36px; margin-left:auto; padding:6px 12px;
+      border:1px solid var(--line); border-radius:999px; font-weight:700}
+  }
+  /* Panels adopted into a mobile screen sit in a single column and drop the desktop
+     grid's span rules. .pref-hidden is still honoured -- an admin-hidden panel stays
+     hidden on the phone too. */
+  @media(max-width:767px){
+    .mobile-panel-mount{display:flex; flex-direction:column; gap:14px}
+    .mobile-panel-mount .panel-node{grid-column:auto; margin:0; width:100%}
+    .mobile-panel-mount .panel-node.pref-hidden{display:none}
+    .mobile-screen .mobile-panel-mount:empty{display:none}
+  }
+  /* Table -> card. Every table in the document ships a static <thead>, so
+     initTableCards() can stamp each cell with data-label and this rule turns a row
+     into a stacked card. Applies only on phones; the desktop table is untouched. */
+  @media(max-width:767px){
+    .tablewrap.cardify{max-height:none; overflow:visible; border:0; background:transparent;
+      contain:none; clip-path:none; isolation:auto}
+    /* The table box won't constrain display:block rows while it is still a table,
+       so it sizes to content and bleeds past .tablewrap. Make it block too. */
+    .tablewrap.cardify table{display:block; min-width:0; width:100%; table-layout:auto;
+      border-collapse:separate; border-spacing:0}
+    .tablewrap.cardify tbody{display:block; width:100%}
+    /* Visually hidden, still read by assistive tech and still the data-label source. */
+    .tablewrap.cardify thead{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
+    .tablewrap.cardify tbody tr{display:block; margin-bottom:8px; padding:12px 14px;
+      background:var(--panel); border:1px solid var(--line); border-radius:16px}
+    .tablewrap.cardify tbody td{display:flex; align-items:center; justify-content:space-between;
+      gap:12px; width:auto; max-width:none; padding:6px 0; border:0; overflow:visible;
+      white-space:normal; text-align:left}
+    /* The label must not inherit .num's monospace face from its own cell. */
+    .tablewrap.cardify tbody td::before{content:attr(data-label); flex:0 0 auto; color:var(--muted);
+      font-family:"Inter",system-ui,sans-serif; font-size:12px; font-weight:600; letter-spacing:.02em}
+    .tablewrap.cardify tbody td:empty{display:none}
+    /* An unlabelled cell (a lone action button) shouldn't reserve a label column. */
+    .tablewrap.cardify tbody td[data-label=""]{justify-content:flex-end}
+    /* First cell is the card's title: full width, no label, a rule under it. */
+    .tablewrap.cardify tbody td:first-child{display:block; font-weight:700; font-size:15px;
+      padding:0 0 9px; margin-bottom:5px; border-bottom:1px solid var(--line)}
+    .tablewrap.cardify tbody td:first-child::before{display:none}
+    .tablewrap.cardify tbody tr:last-child td{border-bottom:0}
+    .tablewrap.cardify tbody td:first-child{border-bottom:1px solid var(--line)}
+    /* Controls living inside cells get room to be tappable. */
+    .tablewrap.cardify tbody td .cat-select,
+    .tablewrap.cardify tbody td input{flex:1 1 auto; min-width:0; min-height:44px}
+    .tablewrap.cardify tbody td .icon-btn{width:44px; height:44px}
+    .tablewrap.cardify .num{white-space:nowrap}
+    /* #txtable's id-level rules (table-layout:fixed, 190/150/150px columns,
+       overflow:hidden) outrank the class selectors above, so restate them. */
+    .tablewrap.cardify #txtable{table-layout:auto}
+    .tablewrap.cardify #txtable td{overflow:visible; padding:6px 0; border-bottom:0}
+    .tablewrap.cardify #txtable td:first-child{padding:0 0 9px}
+    .tablewrap.cardify #txtable th:nth-child(2),.tablewrap.cardify #txtable td:nth-child(2),
+    .tablewrap.cardify #txtable th:nth-child(3),.tablewrap.cardify #txtable td:nth-child(3),
+    .tablewrap.cardify #txtable th:nth-child(4),.tablewrap.cardify #txtable td:nth-child(4){width:auto}
+  }
+
+  @media(max-width:767px){
     body{padding-bottom:152px}.wrap{padding:14px 12px 24px}.header-row{padding:2px 2px 8px}.header-row h1{font-size:20px}.header-actions{display:none}
     .mobile-screen{padding-bottom:84px}
     #pagetabs{display:none}.mobile-screen.active{display:block}
-    body.mobile-custom .hero-card,body.mobile-custom .controls,body.mobile-custom .accountbar,body.mobile-custom .filterbar,
-    body.mobile-custom .stitch-cards,body.mobile-custom .wallet-strip,body.mobile-custom .upcoming-card,body.mobile-custom .fun-card,
-    body.mobile-custom #merchHeatCard,body.mobile-custom .bg-callouts,body.mobile-custom #dashboardPanels{display:none !important}
-    .mobile-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(4,1fr);left:0;right:0;bottom:0;z-index:60;
+    /* Structural, not an allowlist: every desktop section is a direct child of
+       #dashboardView, so anything that isn't a mobile screen is hidden on a phone.
+       New panels can never leak the way #analyticsQuickbar did. .header-row is a
+       sibling of #dashboardView inside .wrap, so it needs its own rule. */
+    body.mobile-custom #dashboardView > *:not(.mobile-screen){display:none !important}
+    body.mobile-custom .header-row{display:none}
+    .mobile-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:0;right:0;bottom:0;z-index:60;
       padding:7px 8px max(7px,env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--line)}
     .mobile-nav-btn{min-height:52px;border:0;border-radius:12px;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;cursor:pointer}
     .mobile-nav-btn .material-symbols-outlined{font-size:22px}.mobile-nav-btn.active{color:var(--accent-strong);background:color-mix(in srgb,var(--accent) 12%,transparent)}
@@ -960,6 +1236,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .money-dock{left:50%;right:auto;bottom:calc(68px + env(safe-area-inset-bottom));transform:translateX(-50%);width:calc(100% - 24px);max-width:420px;justify-content:space-between;padding:6px}
     .money-action{flex:1;justify-content:center;min-height:48px;padding:0 10px}.entry-composer{width:100%;border-left:0}.composer-body{padding-inline:14px}
     .mobile-period-modes{grid-template-columns:repeat(3,1fr)}.composer-categories{grid-template-columns:repeat(3,1fr)}
+    /* Base .wallet-strip is 4-up and its only override stops at 768px, so a phone
+       got four ~76px cards. Stack them until the Accounts screen lands. */
+    .wallet-strip{grid-template-columns:1fr}
     .mobile-wallet-strip{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; margin:0 -12px 16px; padding:0 12px 3px; scrollbar-width:none}
     .mobile-wallet-strip::-webkit-scrollbar{display:none}
     .mobile-wallet-strip .wallet-card{flex:0 0 min(86vw,340px); min-height:184px; scroll-snap-align:start; padding:20px}
@@ -994,21 +1273,26 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .up-ic,.scard .sc-ic{background:rgba(16,185,129,.14); color:var(--accent-strong)}
   .money-action.income{background:var(--accent-strong)}
   .money-action.expense,.composer-save.expense{background:#ff7f79}
+  /* --accent-strong is a dark green in the light theme, so the dark label inherited
+     from .money-action only reached 3.42:1. Light text on it clears AA. */
+  html[data-theme="light"] .money-action.income,
+  html[data-theme="light"] .composer-save.income{color:#f2fbf7}
   .card,.controls,.mobile-period,.mobile-cashflow,.mobile-category-list,.mobile-activity-row,.mobile-more-btn{border-color:rgba(187,202,191,.16)}
   html[data-theme="light"]{--accent:#059669; --accent-strong:#047857; --success:#047857}
 
 </style>
 </head>
 <body>
-<div id="authgate">
-  <div class="auth-box">
-    <div class="auth-ic">💸</div>
-    <h1>Nhihad's Expense Tracker</h1>
+<div id="authgate" aria-hidden="true">
+  <form class="auth-box" id="authForm">
+    <div class="auth-ic" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="23" stroke="#19354a" stroke-width="8"/><path d="M32 9a23 23 0 1 1-20.8 13.2" stroke="#4edea3" stroke-width="8" stroke-linecap="round"/><path d="M14.5 19.8A23 23 0 0 1 27 9.6" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/><circle cx="32" cy="32" r="12" fill="#0b2033"/><path d="M32 20v12l9 5" stroke="#dfffee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h1>Open your ledger.</h1>
     <p class="auth-sub" id="authMsg">Sign in to view your finances. We'll email you a secure magic link — no password.</p>
-    <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
-    <button class="btn primary" id="authBtn" style="width:100%;justify-content:center;padding:12px">Email me a magic link</button>
-    <p class="auth-note" id="authNote"></p>
-  </div>
+    <label class="sr-only" for="authEmail">Email address</label>
+    <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email" required>
+    <button class="btn primary" id="authBtn" type="submit" style="width:100%;justify-content:center;padding:12px">Email me a magic link</button>
+    <p class="auth-note" id="authNote" aria-live="polite"></p>
+  </form>
 </div>
 <div id="dropzone"><div class="dz-box">
   <div class="dz-ic">Import</div>
@@ -1016,7 +1300,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="dz-s">They'll be parsed, deduped, and added instantly.</div>
 </div></div>
 <aside id="sidebar">
-  <div class="sb-brand"><span class="sb-logo" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="23" stroke="#19354a" stroke-width="8"/><path d="M32 9a23 23 0 1 1-20.8 13.2" stroke="#4edea3" stroke-width="8" stroke-linecap="round"/><path d="M14.5 19.8A23 23 0 0 1 27 9.6" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/><circle cx="32" cy="32" r="12" fill="#0b2033"/><path d="M32 20v12l9 5" stroke="#dfffee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Nhihad's Expense Tracker</div>
+  <div class="sb-brand"><span class="sb-logo" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="23" stroke="#19354a" stroke-width="8"/><path d="M32 9a23 23 0 1 1-20.8 13.2" stroke="#4edea3" stroke-width="8" stroke-linecap="round"/><path d="M14.5 19.8A23 23 0 0 1 27 9.6" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/><circle cx="32" cy="32" r="12" fill="#0b2033"/><path d="M32 20v12l9 5" stroke="#dfffee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Expense Tracker</div>
   <nav class="sb-nav">
     <a class="active" href="#tab-dashboard" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
     <a href="#cash-flow" data-cashflow-page><span class="material-symbols-outlined">donut_large</span> Cash flow</a>
@@ -1033,7 +1317,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <div class="wrap">
   <header class="header-row">
     <div>
-      <h1>Nhihad's Expense Tracker</h1>
+      <h1>Expense Tracker</h1>
       <div class="sub" id="subtitle">Scotiabank Visa · loading…</div>
     </div>
     <div class="header-actions">
@@ -1061,6 +1345,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <main id="dashboardView">
   <section class="mobile-screen active" id="mobileOverview" data-mobile-screen="overview">
     <div class="mobile-titlebar"><h2>Overview</h2><button class="btn" id="mobileImport" type="button">Import</button></div>
+    <div class="mobile-period-mount"></div>
     <div class="mobile-wallet-strip" id="mobileWalletStrip" aria-label="Accounts"></div>
     <section class="mobile-overview-ledger" aria-labelledby="mobileOverviewPeriod">
       <p class="mobile-eyebrow">Current selection</p><h3 id="mobileOverviewPeriod">Cash flow</h3>
@@ -1078,7 +1363,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <div class="mobile-title-group"><button class="mobile-back" id="mobileCashflowBack" type="button" aria-label="Back to Overview"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span></button><div class="mobile-title-copy"><p class="mobile-eyebrow">Overview</p><h2>Cash flow</h2></div></div>
       <button class="btn" id="mobileCashflowImport" type="button">Import</button>
     </div>
-    <div class="mobile-period">
+    <div class="mobile-period-mount"></div>
+    <div class="mobile-period" id="mobilePeriod">
       <div class="mobile-period-modes" id="mobilePeriodModes">
         <button class="mobile-period-btn" data-mode="day">Day</button><button class="mobile-period-btn" data-mode="week">Week</button>
         <button class="mobile-period-btn active" data-mode="month">Month</button><button class="mobile-period-btn" data-mode="year">Year</button>
@@ -1099,6 +1385,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   </section>
   <section class="mobile-screen" id="mobileActivity" data-mobile-screen="activity">
     <div class="mobile-titlebar"><h2>Activity</h2><button class="btn" id="mobileActivityImport" type="button">Import statement</button></div>
+    <div class="tx-search"><span class="material-symbols-outlined" aria-hidden="true">search</span><input type="search" placeholder="Search merchant, category, account" aria-label="Search transactions"></div>
+    <div class="mobile-period-mount"></div>
     <div class="mobile-activity-list" id="mobileActivityList"></div>
   </section>
   <section class="mobile-screen" id="mobileMore" data-mobile-screen="more">
@@ -1106,11 +1394,36 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     <div class="mobile-more-grid">
       <button class="mobile-more-btn" data-open-page="accounts"><span class="material-symbols-outlined">account_balance_wallet</span><b>Accounts</b></button>
       <button class="mobile-more-btn" data-open-page="insights"><span class="material-symbols-outlined">analytics</span><b>Insights</b></button>
-      <button class="mobile-more-btn" data-open-page="analytics"><span class="material-symbols-outlined">query_stats</span><b>Analytics</b></button>
       <button class="mobile-more-btn" id="mobileOpenAdmin"><span class="material-symbols-outlined">settings</span><b>Admin &amp; imports</b></button>
       <button class="mobile-more-btn" id="mobileTheme"><span class="material-symbols-outlined">contrast</span><b>Switch theme</b></button>
       <button class="mobile-more-btn" id="mobileExport"><span class="material-symbols-outlined">download</span><b>Export data</b></button>
     </div>
+    <div class="mobile-more-extras" id="mobileMoreExtras"></div>
+  </section>
+  <section class="mobile-screen" id="mobileAnalytics" data-mobile-screen="analytics">
+    <div class="mobile-titlebar"><h2>Analytics</h2></div>
+    <div class="mobile-period-mount"></div>
+    <div class="mobile-panel-mount"></div>
+  </section>
+  <section class="mobile-screen" id="mobilePlans" data-mobile-screen="plans">
+    <div class="mobile-titlebar"><h2>Plans</h2></div>
+    <div class="mobile-period-mount"></div>
+    <div class="mobile-panel-mount"></div>
+  </section>
+  <section class="mobile-screen" id="mobileAccounts" data-mobile-screen="accounts">
+    <div class="mobile-titlebar">
+      <div class="mobile-title-group"><button class="mobile-back" data-mobile-back="more" type="button" aria-label="Back to More"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span></button><div class="mobile-title-copy"><p class="mobile-eyebrow">More</p><h2>Accounts</h2></div></div>
+    </div>
+    <div class="mobile-period-mount"></div>
+    <div class="mobile-wallet-strip" id="mobileAccountsStrip" aria-label="Accounts"></div>
+    <div class="mobile-panel-mount"></div>
+  </section>
+  <section class="mobile-screen" id="mobileInsights" data-mobile-screen="insights">
+    <div class="mobile-titlebar">
+      <div class="mobile-title-group"><button class="mobile-back" data-mobile-back="more" type="button" aria-label="Back to More"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span></button><div class="mobile-title-copy"><p class="mobile-eyebrow">More</p><h2>Insights</h2></div></div>
+    </div>
+    <div class="mobile-period-mount"></div>
+    <div class="mobile-panel-mount"></div>
   </section>
   <nav class="pagetabs" id="pagetabs" role="tablist" aria-label="Dashboard pages">
     <button class="ptab active" data-page="dashboard" type="button" role="tab" aria-selected="true" aria-label="Dashboard"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span> Dashboard</button>
@@ -1198,7 +1511,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
     <div class="card full panel-node" id="monthlyCard" data-panel-id="monthly" data-panel-title="Monthly spending by category">
       <h2>Monthly spending by category</h2>
-      <p class="hint">Hover a segment for the amount and its share of that month.</p>
+      <p class="hint">Tap or hover a segment for the amount and its share of that month.</p>
       <div class="chartbox tall"><canvas id="monthly"></canvas></div>
     </div>
 
@@ -1216,7 +1529,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
     <div class="card full panel-node" id="heatmapCard" data-panel-id="heatmap" data-panel-title="Daily spending heatmap">
       <h2>Daily spending heatmap</h2>
-      <p class="hint">Each square is a day. Brighter means more spent. Hover for details, click a day to filter everything to it.</p>
+      <p class="hint">Each square is a day. Brighter means more spent. Tap a day to filter everything to it.</p>
       <div class="cal-wrap"><div class="cal-months" id="calendar"></div></div>
       <div class="cal-legend"><span>Less</span><span class="sw" id="lg0"></span><span class="sw" id="lg1"></span><span class="sw" id="lg2"></span><span class="sw" id="lg3"></span><span class="sw" id="lg4"></span><span>More</span></div>
     </div>
@@ -1366,6 +1679,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         <button class="linkbtn" id="txViewAll" type="button">View All</button>
       </div>
       <p class="hint">Click a column header to sort.</p>
+      <div class="tx-search"><span class="material-symbols-outlined" aria-hidden="true">search</span><input type="search" placeholder="Search merchant, category, account" aria-label="Search transactions"></div>
+      <div class="mobile-sortbar" id="txSortBar">
+        <label for="txSortKey">Sort by</label>
+        <select id="txSortKey">
+          <option value="date">Date</option><option value="amount">Amount</option>
+          <option value="merchant">Merchant</option><option value="category">Category</option>
+        </select>
+        <button type="button" id="txSortDir" aria-label="Toggle sort direction">↓</button>
+      </div>
       <div class="tablewrap">
         <table id="txtable">
           <thead><tr>
@@ -1427,10 +1749,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
   <button class="mobile-nav-btn active" data-mobile-nav="overview"><span class="material-symbols-outlined">donut_large</span><span>Overview</span></button>
   <button class="mobile-nav-btn" data-mobile-nav="activity"><span class="material-symbols-outlined">receipt_long</span><span>Activity</span></button>
+  <button class="mobile-nav-btn" data-mobile-nav="analytics"><span class="material-symbols-outlined">insights</span><span>Analytics</span></button>
   <button class="mobile-nav-btn" data-mobile-nav="plans"><span class="material-symbols-outlined">savings</span><span>Plans</span></button>
   <button class="mobile-nav-btn" data-mobile-nav="more"><span class="material-symbols-outlined">more_horiz</span><span>More</span></button>
 </nav>
-<section class="entry-composer" id="entryComposer" aria-hidden="true" aria-labelledby="entryComposerTitle">
+<section class="entry-composer" id="entryComposer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="entryComposerTitle">
   <div class="composer-head"><button class="composer-icon-btn" id="closeComposer" type="button" aria-label="Close entry form">×</button><h2 id="entryComposerTitle">New expense</h2><span></span></div>
   <div class="composer-body">
     <div class="composer-amount" id="composerAmount">$0.00</div>
@@ -1457,6 +1780,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <div class="app-toast" id="appToast" role="status" aria-live="polite"></div>
 
 <script>
+// Single source of truth for the phone breakpoint. Matches the 320-767px phone
+// tier in DESIGN.md; the CSS @media(max-width:767px) blocks switch in lockstep.
+const PHONE_Q = matchMedia("(max-width:767px)");
+
 // Baked-in fallback data (used when opened as a static file). When served by
 // server.py, the dashboard fetches live data from the API instead. See boot().
 let DATA = /*__DATA__*/;
@@ -1467,7 +1794,7 @@ let PAYMENTS = /*__PAYMENTS__*/;            // payments/credits across all cards
 let MANUAL_ENTRIES = [];
 const SUPA = /*__SUPA__*/;                  // hosted: {url,key,email}; local: null
 
-// Suggested monthly budgets (≈ rounded from observed monthly averages).
+// Generic starter targets. Hosted owner state replaces these after authentication.
 const DEFAULT_BUDGETS = {
   "Entertainment":700, "Travel":400, "Eating out":300, "Subscriptions":120,
   "Food":150, "Shopping":100, "Health":60, "Transport":40,
@@ -1577,6 +1904,7 @@ const DEFAULT_PANEL_ORDER=["summary","insights","monthly","category","weekly","h
 // ---- Tabbed pages: each panel belongs to exactly one page ----
 const PAGE_ORDER=["dashboard","accounts","insights","analytics","budgets"];
 const PAGE_LABEL={dashboard:"Dashboard",accounts:"Accounts",insights:"Insights",analytics:"Analytics",budgets:"Budgets & Goals"};
+function setDocumentTitle(label){ document.title=label==="Expense Tracker"?label:`${label} · Expense Tracker`; }
 const TAB_OF={
   summary:"dashboard", insights:"dashboard", monthly:"dashboard", category:"dashboard",
   chequing:"accounts", payments:"accounts", merchants:"accounts", transactions:"accounts",
@@ -1778,6 +2106,7 @@ function redrawAll(){
 }
 function showTab(name){
   if(!PAGE_ORDER.includes(name)) name="dashboard";
+  releasePanels();                                // return anything a phone screen adopted
   document.body.classList.remove("cashflow-page");
   document.body.classList.toggle("analytics-view",name==="analytics");
   $("mobileCashFlow")?.classList.remove("active");
@@ -1792,14 +2121,17 @@ function showTab(name){
       else b.setAttribute("aria-selected",active?"true":"false");
     });
   if(location.hash!==`#tab-${name}`) history.replaceState(null,"",`#tab-${name}`);
+  setDocumentTitle(PAGE_LABEL[name]||"Dashboard");
   applyDashboardPrefs();                           // unhide this tab's panels
   redrawAll();                                     // charts size correctly now the containers are visible
+  flushPendingCharts();                            // and any this page revealed but didn't rebuild
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function showCashflowPage(){
-  if(matchMedia("(max-width:700px)").matches){ openMobileCashflow(); return; }
+  if(PHONE_Q.matches){ openMobileCashflow(); return; }
   showAppView("dashboard");
   document.body.classList.remove("mobile-custom");
+  releasePanels();
   document.body.classList.add("cashflow-page");
   document.querySelectorAll("[data-mobile-screen]").forEach(screen=>screen.classList.toggle("active",screen.dataset.mobileScreen==="cashflow"));
   document.querySelectorAll("[data-tab],.panel-node").forEach(panel=>panel.classList.add("tab-off"));
@@ -1812,6 +2144,8 @@ function showCashflowPage(){
     if(tab.tagName==="A") tab.setAttribute("aria-current","page"); else tab.setAttribute("aria-selected","true");
   });
   if(location.hash!=="#cash-flow") history.replaceState(null,"","#cash-flow");
+  setDocumentTitle("Cash Flow");
+  mountSharedControls();
   renderMobileOverview();
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -1865,10 +2199,11 @@ function restoreWarning(id){
   queueDashboardPrefSave(); render(); renderAdmin();
 }
 function showAppView(name){
+  if(name==="admin"&&ACTIVE_PROFILE!=="owner"){ showToast("Shared profiles are read-only.","err"); name="dashboard"; }
   const admin=name==="admin";
   $("dashboardView").hidden=admin; $("adminView").hidden=!admin;
   $("dashboardNav").classList.toggle("active",!admin); $("adminNav").classList.toggle("active",admin);
-  if(admin){ renderAdmin(); loadImportHistory(); if(location.hash!=="#admin") history.replaceState(null,"","#admin"); }
+  if(admin){ renderAdmin(); loadImportHistory(); setDocumentTitle("Admin"); if(location.hash!=="#admin") history.replaceState(null,"","#admin"); }
 }
 $("dashboardNav").onclick=()=>showTab(DASH_PREF.activeTab||"dashboard");
 $("adminNav").onclick=()=>showAppView("admin");
@@ -1898,7 +2233,15 @@ Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
 Chart.defaults.borderColor = "#2a2f3d";
 
 // ---- Cross-filter state (Power BI-style) ----
-const FILT={ cats:new Set(), merchants:new Set(), months:new Set(), days:new Set(), accounts:new Set() };
+const FILT={ cats:new Set(), merchants:new Set(), months:new Set(), days:new Set(), accounts:new Set(), q:"" };
+// Free-text search across merchant, category and account. Neither platform had
+// one; putting it in FILT means the desktop panels and the mobile screens both
+// honour it through the paths they already use.
+function matchesQuery(row){
+  if(!FILT.q) return true;
+  const hay=`${row.merchant??row.name??""} ${row.category??""} ${row.account??""}`.toLowerCase();
+  return FILT.q.split(/\s+/).every(term=>hay.includes(term));
+}
 function dim(color, off){ return off ? color+"33" : color; }   // 0x33 alpha when not selected
 const ACCOUNT_COLORS={ "Scotiabank Visa":"#ff6b6b", "Tangerine Mastercard":"#ff922b",
   "Amex":"#22b8cf", "BMO Mastercard":"#4dabf7" };
@@ -1919,13 +2262,22 @@ function getFiltered(exclude){
     if(exclude!=="merchants" && FILT.merchants.size && !FILT.merchants.has(r.merchant)) return false;
     if(exclude!=="months" && FILT.months.size && !FILT.months.has(r.date.slice(0,7))) return false;
     if(exclude!=="days" && FILT.days.size && !FILT.days.has(r.date)) return false;
+    if(!matchesQuery(r)) return false;
     return true;
   });
 }
 function filtered(){ return getFiltered(null); }              // all filters (used by export, table, KPIs)
-function toggle(dimName, val){ const s=FILT[dimName]; s.has(val)?s.delete(val):s.add(val); render(); }
-function clearAllFilters(){ ["cats","merchants","months","days","accounts"].forEach(d=>FILT[d].clear()); render(); }
-function anyFilter(){ return FILT.cats.size||FILT.merchants.size||FILT.months.size||FILT.days.size||FILT.accounts.size; }
+// Filters drive both pipelines now, so both have to redraw.
+function afterFilterChange(){ render(); renderMobile(); mountSharedControls(); }
+function toggle(dimName, val){ const s=FILT[dimName]; s.has(val)?s.delete(val):s.add(val); afterFilterChange(); }
+function clearAllFilters(){ ["cats","merchants","months","days","accounts"].forEach(d=>FILT[d].clear());
+  FILT.q=""; document.querySelectorAll(".tx-search input").forEach(i=>i.value=""); afterFilterChange(); }
+function anyFilter(){ return FILT.cats.size||FILT.merchants.size||FILT.months.size||FILT.days.size||FILT.accounts.size||!!FILT.q; }
+function setSearchQuery(value){
+  FILT.q=String(value||"").trim().toLowerCase();
+  document.querySelectorAll(".tx-search input").forEach(input=>{ if(input.value!==value) input.value=value; });
+  afterFilterChange();
+}
 
 function renderAccounts(){
   ACCOUNTS=[...new Set(DATA.map(r=>r.account))].sort();
@@ -1953,14 +2305,15 @@ function renderChips(){
   FILT.merchants.forEach(m=>items.push(["merchants",m,m,null]));
   FILT.months.forEach(m=>items.push(["months",m,monthLbl(m),null]));
   FILT.days.forEach(d=>items.push(["days",d,dayLbl(d),null]));
+  if(FILT.q) items.push(["q",FILT.q,`“${FILT.q}”`,null]);
   if(!items.length){ bar.className="filterbar empty"; bar.innerHTML=""; return; }
   bar.className="filterbar";
   bar.innerHTML=`<span class="lbl">Filters</span>`+items.map(([dim,val,lbl,col])=>
     `<span class="fchip">${col?`<span class="dot" style="background:${col}"></span>`:""}${String(lbl).replace(/</g,"&lt;")}<span class="x" data-dim="${dim}" data-val="${String(val).replace(/"/g,'&quot;')}" tabindex="0" role="button" aria-label="Remove filter">x</span></span>`
   ).join("")+`<button class="fclear" id="fclearbtn">Clear all</button>`;
   bar.querySelectorAll(".x").forEach(x=>{
-    x.onclick=()=>toggle(x.dataset.dim, x.dataset.val);
-    x.onkeydown=e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); toggle(x.dataset.dim, x.dataset.val); } };
+    x.onclick=()=>x.dataset.dim==="q"?setSearchQuery(""):toggle(x.dataset.dim, x.dataset.val);
+    x.onkeydown=e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); x.onclick(); } };
   });
   $("fclearbtn").onclick=clearAllFilters;
 }
@@ -1977,6 +2330,13 @@ function setAnalyticsPeriod(period){
   else if(period==="YTD") from=latest.slice(0,4)+"-01";
   $("from").value=from; $("to").value=period==="ALL"?MAX:latest;
   document.querySelectorAll("[data-analytics-period]").forEach(b=>b.classList.toggle("active",b.dataset.analyticsPeriod===period));
+  // Mirror into MOBILE_RANGE so the phone screens describe the same window rather
+  // than reporting a different total than the bar the user just tapped.
+  if(period==="ALL") MOBILE_RANGE.mode="all";
+  else if(period==="1M"){ MOBILE_RANGE.mode="month"; MOBILE_RANGE.anchor=`${latest}-01`; }
+  else { MOBILE_RANGE.mode="custom"; MOBILE_RANGE.customFrom=`${from}-01`;
+         MOBILE_RANGE.customTo=`${latest}-${String(monthEnd(latest)).padStart(2,"0")}`; }
+  MOBILE_SELECTED_CAT=null; renderMobile();
   render();
 }
 
@@ -2007,6 +2367,7 @@ function togglePresets(){
 }
 
 function render(){
+  PANELS_STALE=false;                              // whoever called this just refreshed the panels
   const rows = filtered();                         // all filters → detail visuals
   const f=dayFrom(), t=dayTo();
 
@@ -2157,15 +2518,39 @@ function drawDoughnut(id, labels, data, total, onClick){
     data:{labels, datasets:[{data, backgroundColor:labels.map(c=>dim(CAT_COLORS[c]||"#999", FILT.cats.size && !FILT.cats.has(c))),
       borderColor:"#181b24", borderWidth:2, hoverOffset:6}]},
     options: baseOpts({ cutout:"62%", onClick: clickHandler(onClick),
-      plugins:{legend:{position:"right", labels:{boxWidth:11,padding:9,usePointStyle:true,font:{size:11.5}}},
+      // A right-hand legend eats roughly half of a 375px viewport, leaving the
+      // doughnut itself too small to read. Move it under the chart on phones.
+      plugins:{legend:{position:PHONE_Q.matches?"bottom":"right", labels:{boxWidth:11,padding:9,usePointStyle:true,font:{size:11.5}}},
         tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.parsed)} (${(c.parsed/total*100).toFixed(1)}%)`},
           backgroundColor:"#0f1117", borderColor:"#2a2f3d", borderWidth:1, padding:10}}}),
     plugins:[center]});
 }
 
-function upsert(id, cfg){
+// Chart.js sizes a chart from its container at construction time and writes the
+// result inline, so building one inside a display:none panel bakes in width:0 and
+// no later resize() call recovers it. Every render used to rebuild all twelve
+// charts regardless of which page was showing, which meant simply navigating away
+// and back left a screen full of zero-width charts. Defer any chart whose canvas
+// has no layout box and build it when it is next revealed -- which also stops us
+// constructing eight off-screen charts on every render.
+const pendingCharts={};
+function buildChart(id, cfg){
   if(charts[id]){ charts[id].destroy(); }
   charts[id]=new Chart($(id).getContext("2d"), cfg);
+}
+function upsert(id, cfg){
+  const node=$(id); if(!node) return;
+  if(!node.getClientRects().length){ pendingCharts[id]=cfg; return; }   // hidden: defer
+  delete pendingCharts[id];
+  buildChart(id, cfg);
+}
+// Build any deferred chart that is now visible. Pass a root to limit the sweep.
+function flushPendingCharts(root){
+  Object.keys(pendingCharts).forEach(id=>{
+    const node=$(id); if(!node||!node.getClientRects().length) return;
+    if(root&&!root.contains(node)) return;
+    const cfg=pendingCharts[id]; delete pendingCharts[id]; buildChart(id, cfg);
+  });
 }
 
 let sortK="date", sortDir=1;
@@ -2213,6 +2598,18 @@ document.querySelectorAll("#txtable th").forEach(th=>{
   th.onclick=()=>{ const k=th.dataset.k; if(k===sortK){sortDir*=-1;} else {sortK=k; sortDir=(k==="amount"||k==="date")?-1:1;} render(); };
   th.onkeydown=e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); th.click(); } };
 });
+// Card-ified tables hide their <thead>, which would leave a phone with no way to
+// sort at all. Drive the same state from a visible control instead.
+function syncTxSortBar(){
+  const key=$("txSortKey"), dir=$("txSortDir"); if(!key||!dir) return;
+  key.value=sortK; dir.textContent=sortDir<0?"↓":"↑";
+  dir.setAttribute("aria-label",`Sorting ${sortDir<0?"descending":"ascending"} — tap to reverse`);
+}
+if($("txSortKey")){
+  $("txSortKey").onchange=()=>{ sortK=$("txSortKey").value; sortDir=(sortK==="amount"||sortK==="date")?-1:1; syncTxSortBar(); render(); };
+  $("txSortDir").onclick=()=>{ sortDir*=-1; syncTxSortBar(); render(); };
+  syncTxSortBar();
+}
 
 // ---- Budgets (editable, persisted to localStorage) ----
 const BKEY="expense-budgets-v1";
@@ -2345,12 +2742,7 @@ let RECURRING = [];
 
 // ---- Manual subscriptions + dismissed auto-detects (localStorage + Supabase when hosted) ----
 const SUBKEY="expense-subs-v1", SUBDISKEY="expense-subs-dismissed-v1", SUBOVERRIDEKEY="expense-subs-overrides-v1";
-const DEFAULT_SUBS=[
-  {name:"Claude", amount:20, cadence:"Monthly", category:"Subscriptions"},
-  {name:"Gas money → parents", amount:70, cadence:"Monthly", category:"Transport"},
-  {name:"YouTube Premium (family)", amount:160, cadence:"Yearly", category:"Subscriptions"},
-  {name:"iCloud (family)", amount:130, cadence:"Yearly", category:"Subscriptions"},
-];
+const DEFAULT_SUBS=[];
 function loadJSON(k,def){ try{ const v=JSON.parse(localStorage.getItem(k)); return v??def; }catch(e){ return def; } }
 let MANUAL_SUBS = loadJSON(SUBKEY, null) || DEFAULT_SUBS.slice();
 let DISMISSED = new Set(loadJSON(SUBDISKEY, []));
@@ -2424,7 +2816,7 @@ function renderWalletCards(){
   }
   const html=cards.join("");
   strip.innerHTML=html;
-  const mobileStrip=$("mobileWalletStrip"); if(mobileStrip) mobileStrip.innerHTML=html;
+  document.querySelectorAll(".mobile-wallet-strip").forEach(node=>node.innerHTML=html);
 }
 
 function renderInsightsExtras(){
@@ -2935,8 +3327,10 @@ function renderCalendar(rows){
 // ---- Mobile overview, activity, navigation, and manual entries ----
 const MOBILE_RANGE={mode:"month",anchor:null,customFrom:"",customTo:""};
 let MOBILE_SELECTED_CAT=null, MOBILE_DONUT=null, MOBILE_SHELL_READY=false;
+const MOBILE_ACTIVITY_PAGE=100; let MOBILE_ACTIVITY_LIMIT=MOBILE_ACTIVITY_PAGE;
 let COMPOSER={type:"expense",id:null,category:"",expression:"0"};
 let ENTRY_SAVING=false;
+let COMPOSER_RETURN_FOCUS=null;
 
 function latestTimelineDate(){
   const dates=DATA.map(r=>r.date).concat(MANUAL_ENTRIES.map(r=>r.date)).concat(CHEQUING.map(r=>r.date)).filter(Boolean).sort();
@@ -2969,18 +3363,52 @@ function shiftMobileRange(direction){
   if(MOBILE_RANGE.mode==="day"||MOBILE_RANGE.mode==="week") date.setDate(date.getDate()+amount*direction);
   else if(MOBILE_RANGE.mode==="month") date.setMonth(date.getMonth()+direction);
   else date.setFullYear(date.getFullYear()+direction);
-  MOBILE_RANGE.anchor=isoLocal(date); MOBILE_SELECTED_CAT=null; renderMobile();
+  setMobileRange({anchor:isoLocal(date)});
+}
+// The same five filter dimensions the desktop panels honour, applied to a row.
+// Without this the mobile screens ignored FILT entirely, so a tap on a chart could
+// show "Shopping" in the filter bar while the Activity list still listed everything.
+function passesFilters(row, account){
+  if(FILT.accounts.size && !FILT.accounts.has(account??row.account)) return false;
+  if(FILT.cats.size && !FILT.cats.has(row.category)) return false;
+  if(FILT.merchants.size && !FILT.merchants.has(row.merchant??row.name)) return false;
+  if(FILT.months.size && !FILT.months.has(row.date.slice(0,7))) return false;
+  if(FILT.days.size && !FILT.days.has(row.date)) return false;
+  if(!matchesQuery(row)) return false;
+  return true;
 }
 function selectedMobileData(){
   const {from,to}=mobileRangeBounds();
-  const expenses=DATA.filter(row=>row.date>=from&&row.date<=to);
-  const importedIncome=CHEQUING.filter(row=>row.is_income&&row.date>=from&&row.date<=to).map(row=>({
+  const inRange=row=>row.date>=from&&row.date<=to;
+  const expenses=DATA.filter(row=>inRange(row)&&passesFilters(row));
+  const importedIncome=CHEQUING.filter(row=>row.is_income&&inRange(row)).map(row=>({
     date:row.date,name:row.desc||"Deposit",amount:+row.amount,category:row.dep_type==="interest"?"Interest":"Deposits",account:row.account||"Chequing",entry_type:"income",
-  }));
-  const manualIncome=MANUAL_ENTRIES.filter(row=>row.entry_type==="income"&&row.date>=from&&row.date<=to);
+  })).filter(row=>passesFilters(row));
+  const manualIncome=MANUAL_ENTRIES.filter(row=>row.entry_type==="income"&&inRange(row)&&passesFilters(row));
   return {from,to,expenses,income:importedIncome.concat(manualIncome)};
 }
 function renderMobile(){ renderMobileOverview(); renderMobileActivity(); }
+// Chart.js paints its own tooltip inside the canvas, where the center cash-flow
+// overlay covers it. Render an HTML one instead, layered above the overlay and
+// flipped below the caret when it would run off the top of the chart.
+function donutTooltip(context){
+  const {chart, tooltip}=context;
+  const host=chart.canvas.parentNode;
+  let tip=host.querySelector(".donut-tip");
+  if(!tip){ tip=document.createElement("div"); tip.className="donut-tip"; host.appendChild(tip); }
+  if(!tooltip.opacity){ tip.style.opacity=0; return; }
+  const point=tooltip.dataPoints&&tooltip.dataPoints[0];
+  if(!point){ tip.style.opacity=0; return; }
+  const total=point.dataset.data.reduce((a,b)=>a+(+b||0),0);
+  const share=total?(point.parsed/total*100):0;
+  tip.innerHTML=`<span class="dot" style="background:${CAT_COLORS[point.label]||"#aeb8c7"}"></span>
+    <span>${esc(point.label)}</span><span class="tip-share">${fmt(point.parsed)} · ${share<1?share.toFixed(1):Math.round(share)}%</span>`;
+  tip.classList.toggle("below", tooltip.caretY < 54);
+  tip.style.left=`${tooltip.caretX}px`;
+  tip.style.top=`${tooltip.caretY}px`;
+  tip.style.opacity=1;
+}
+
 // Monefy-style ring: one icon per category, placed at its slice's mid-angle, with the
 // share as a label and the exact dollar amount revealed on hover/tap.
 function renderCategoryRing(categories, total){
@@ -3039,7 +3467,7 @@ function renderMobileOverview(){
   MOBILE_DONUT=new Chart($("mobileDonut"),{type:"doughnut",data:{labels:labels.length?labels:["No expenses"],datasets:[{
     data:values.length?values:[1],backgroundColor:labels.length?labels.map(name=>CAT_COLORS[name]||"#aeb8c7"):["#2a394a"],
     borderColor:getComputedStyle(document.documentElement).getPropertyValue("--panel").trim(),borderWidth:4,hoverOffset:5,
-  }]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",animation:{duration:180},plugins:{legend:{display:false},tooltip:{enabled:!!labels.length,callbacks:{label:context=>` ${context.label}: ${fmt(context.parsed)}`}}},onClick:(_event,elements)=>{
+  }]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",animation:{duration:180},plugins:{legend:{display:false},tooltip:{enabled:false,external:labels.length?donutTooltip:()=>{}}},onClick:(_event,elements)=>{
     if(elements.length){MOBILE_SELECTED_CAT=labels[elements[0].index];renderMobileOverview();}
   }}});
   renderCategoryRing(categories, values.reduce((a,b)=>a+b,0));
@@ -3060,27 +3488,162 @@ function renderMobileActivity(){
   const list=$("mobileActivityList"); if(!list) return; const {expenses,income}=selectedMobileData();
   const rows=expenses.map(row=>({date:row.date,name:row.merchant,amount:+row.amount,category:row.category,account:row.account,entry_type:"expense",manual_id:row.manual_id}))
     .concat(income.map(row=>({date:row.date,name:row.name||row.desc||"Income",amount:+row.amount,category:row.category||"Deposits",account:row.account,entry_type:"income",manual_id:row.id})))
-    .sort((a,b)=>b.date.localeCompare(a.date)||b.amount-a.amount).slice(0,100);
-  list.innerHTML=rows.length?rows.map(row=>{const incoming=row.entry_type==="income", category=row.category||"Other";
+    .sort((a,b)=>b.date.localeCompare(a.date)||b.amount-a.amount);
+  // The list used to .slice(0,100) silently, so "All activity" showed 100 of ~1,900
+  // rows with no way to tell. Cap for rendering cost, but say so and offer more.
+  const shown=rows.slice(0,MOBILE_ACTIVITY_LIMIT);
+  list.innerHTML=shown.length?shown.map(row=>{const incoming=row.entry_type==="income", category=row.category||"Other";
     return `<article class="mobile-activity-row ${row.manual_id?'manual':''}" ${row.manual_id?`data-manual-id="${row.manual_id}" tabindex="0" role="button" aria-label="Edit ${esc(row.name)}"`:''}>
       <span class="category-icon" style="--cat:${(incoming?INCOME_COLORS:CAT_COLORS)[category]||'#aeb8c7'}"><span class="material-symbols-outlined">${CAT_ICONS[category]||'category'}</span></span>
       <span><div class="activity-title">${esc(row.name)}</div><div class="activity-meta">${esc(category)} · ${dlabel(row.date)}${row.account?` · ${esc(row.account)}`:''}</div></span>
       <span class="activity-amount ${incoming?'in':'out'}">${incoming?'+':'-'}${fmt(row.amount)}</span></article>`;
   }).join(""):'<div class="empty-note">No activity in this timeframe.</div>';
+  if(rows.length>shown.length)
+    list.insertAdjacentHTML("beforeend",`<button type="button" class="mobile-activity-more" id="mobileActivityMore">Show more<small>Showing ${shown.length.toLocaleString()} of ${rows.length.toLocaleString()}</small></button>`);
+  else if(rows.length)
+    list.insertAdjacentHTML("beforeend",`<p class="mobile-activity-count">${rows.length.toLocaleString()} ${rows.length===1?"transaction":"transactions"} in this timeframe</p>`);
+  const more=$("mobileActivityMore");
+  if(more) more.onclick=()=>{MOBILE_ACTIVITY_LIMIT+=200;renderMobileActivity();};
   list.querySelectorAll("[data-manual-id]").forEach(row=>{row.onclick=()=>openComposer(null,row.dataset.manualId);row.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();row.click();}};});
 }
+// ---- Panel adoption ----
+// The desktop panels are already the right content for the phone screens; what was
+// wrong was the chrome around them, the tables inside them, and the tap targets --
+// all handled elsewhere. So rather than reimplementing four renderers, move the
+// panel nodes into the mobile screen that owns them and move them back on the way
+// up to tablet. Moving (never cloning) keeps canvas ids unique, which Chart.js
+// depends on. chequing/networth/rules are deliberately inline-hidden, so they are
+// left out.
+const MOBILE_PANELS={
+  analytics:["summary","monthly","category","variance","trends","projection"],
+  plans:["budgets","goals","income","recurring","rules"],
+  accounts:["merchants","payments","transactions"],
+  insights:["insights","weekly","heatmap","forecast"],
+};
+// render() costs ~300ms with a full ledger, so running it on every nav tap makes the
+// phone shell feel broken. Adopted panels only go stale when the window or the data
+// changes, so track that and redraw on entry to a panel screen instead.
+let PANELS_STALE=true;
+function markPanelsStale(){ PANELS_STALE=true; }
+// Moving a canvas to a new parent leaves its Chart.js instance sized against the old
+// one, and chart.resize() cannot recover it -- Chart.js writes width:0px/height:0px
+// inline and keeps it. upsert() destroys and rebuilds each chart, so the fix is to
+// mark the panels stale whenever a move happened and let render() rebuild them.
+function adoptPanels(screenName){
+  const ids=MOBILE_PANELS[screenName]; if(!ids) return;
+  const mount=document.querySelector(`[data-mobile-screen="${screenName}"] .mobile-panel-mount`); if(!mount) return;
+  ids.forEach(id=>{
+    const node=document.querySelector(`.panel-node[data-panel-id="${id}"]`); if(!node) return;
+    if(node.parentElement!==mount){ mount.appendChild(node); markPanelsStale(); }
+    // applyDashboardPrefs() scopes its query to #dashboardPanels, so it can no
+    // longer reach an adopted panel to clear the page flag it set on the way out.
+    node.classList.remove("tab-off");
+  });
+}
+function releasePanels(){
+  const host=$("dashboardPanels"); if(!host) return;
+  const adopted=document.querySelectorAll(".mobile-panel-mount .panel-node");
+  if(!adopted.length) return;
+  adopted.forEach(node=>host.appendChild(node));
+  applyDashboardPrefs();          // restores DASH_PREF order and the .tab-off flags
+  markPanelsStale();
+}
+
+// ---- Table -> card on phones ----
+// Every table here renders its body with innerHTML from a different function, so
+// rather than touching seven renderers we stamp each cell with the matching <thead>
+// label and let CSS restack the row. A MutationObserver re-stamps after each render.
+function labelTableCells(table){
+  const heads=[...(table.tHead&&table.tHead.rows[0]?table.tHead.rows[0].cells:[])].map(th=>th.textContent.trim());
+  [...table.tBodies].forEach(body=>[...body.rows].forEach(row=>
+    [...row.cells].forEach((cell,index)=>{ if(!cell.dataset.label) cell.dataset.label=heads[index]||""; })));
+}
+function initTableCards(){
+  document.querySelectorAll(".tablewrap table").forEach(table=>{
+    const wrap=table.closest(".tablewrap"); if(!wrap||wrap.dataset.cardified) return;
+    wrap.dataset.cardified="1"; wrap.classList.add("cardify"); labelTableCells(table);
+    if(table.tBodies[0]) new MutationObserver(()=>labelTableCells(table)).observe(table.tBodies[0],{childList:true});
+  });
+}
+
+// There is exactly one period control and one filter bar in the document. Rather
+// than cloning them per screen (which would duplicate ids and desync state), move
+// the nodes into whichever screen is showing. Screens that want them declare a
+// .mobile-period-mount.
+//
+// The filter bar has to travel too. Tapping a chart segment or a heatmap day calls
+// toggle(), which sets a filter on every screen -- but #filterbar is a direct child
+// of #dashboardView, so the mobile hide rule hid it. That left a phone able to
+// filter itself down to zero rows with nothing on screen saying a filter was on and
+// no way to clear it short of reloading.
+function mountSharedControls(){
+  // The profile switcher lives in .header-actions, which is display:none on phones,
+  // so switching to a shared profile was impossible there. Park it under More.
+  const profile=$("profileSwitchWrap"), extras=$("mobileMoreExtras");
+  const profileHome=PHONE_Q.matches?extras:document.querySelector(".header-actions");
+  if(profile&&profileHome&&profile.parentElement!==profileHome){
+    profileHome.insertBefore(profile, PHONE_Q.matches?null:$("dashboardNav"));
+  }
+  const screen=document.querySelector("[data-mobile-screen].active")||$("mobileCashFlow");
+  const mount=screen&&screen.querySelector(".mobile-period-mount"); if(!mount) return;
+  [$("mobilePeriod"),$("filterbar")].forEach(node=>{
+    if(node&&node.parentElement!==mount) mount.appendChild(node);
+  });
+}
+// The desktop panels read $("from")/$("to"); the mobile screens read MOBILE_RANGE.
+// Keeping the month selects in step means showTab()'s redrawAll() renders the same
+// window the phone was showing, instead of the two controls disagreeing.
+function syncDesktopRangeFromMobile(){
+  const fromSel=$("from"), toSel=$("to"); if(!fromSel||!fromSel.options.length) return;
+  const months=[...fromSel.options].map(option=>option.value);
+  const {from,to}=mobileRangeBounds(), lo=from.slice(0,7), hi=to.slice(0,7);
+  const atOrBefore=months.filter(m=>m<=lo).pop()||months[0];
+  const atOrAfter=months.find(m=>m>=hi)||months[months.length-1];
+  if(fromSel.value!==atOrBefore||toSel.value!==atOrAfter) markPanelsStale();
+  fromSel.value=atOrBefore; toSel.value=atOrAfter;
+}
+function setMobileRange(changes){
+  Object.assign(MOBILE_RANGE,changes); MOBILE_SELECTED_CAT=null;
+  MOBILE_ACTIVITY_LIMIT=MOBILE_ACTIVITY_PAGE;   // a new window starts from the top
+  markPanelsStale();
+  syncDesktopRangeFromMobile(); renderMobile();
+  // If a panel screen is on screen right now, it has to redraw immediately.
+  const active=document.querySelector("[data-mobile-screen].active");
+  if(active&&MOBILE_PANELS[active.dataset.mobileScreen]) redrawAll();
+}
+// Every destination is a real mobile screen. There is deliberately no path back to
+// the desktop layout from here -- "plans" and "legacy" used to fall through to
+// showTab(), which dropped mobile-custom and rendered the desktop dashboard at
+// 375px. The nav button that lights up for a pushed screen is its parent tab.
+const MOBILE_NAV_PARENT={cashflow:"overview",accounts:"more",insights:"more"};
+const MOBILE_SCREENS=["overview","cashflow","activity","analytics","plans","more","accounts","insights"];
 function showMobileView(name,page){
-  const custom=["overview","cashflow","activity","more"].includes(name); document.body.classList.toggle("mobile-custom",custom);
+  if(!MOBILE_SCREENS.includes(name)) name="overview";
+  const custom=MOBILE_SCREENS.includes(name); document.body.classList.toggle("mobile-custom",custom);
+  adoptPanels(name);
   document.querySelectorAll("[data-mobile-screen]").forEach(screen=>screen.classList.toggle("active",custom&&screen.dataset.mobileScreen===name));
-  document.querySelectorAll("[data-mobile-nav]").forEach(button=>button.classList.toggle("active",button.dataset.mobileNav===name||(name==="cashflow"&&button.dataset.mobileNav==="overview")||(name==="legacy"&&button.dataset.mobileNav==="more")));
-  if(name==="plans") showTab("budgets"); else if(name==="legacy") showTab(page||"accounts"); else {showAppView("dashboard");renderMobile();window.scrollTo({top:0,behavior:"smooth"});}
+  mountSharedControls();
+  const lit=MOBILE_NAV_PARENT[name]||name;
+  document.querySelectorAll("[data-mobile-nav]").forEach(button=>button.classList.toggle("active",button.dataset.mobileNav===lit));
+  showAppView("dashboard");
+  renderMobile();
+  // The month selects start at the full ledger range, so without this the adopted
+  // panels describe every month on record while the period control says "August
+  // 2026" -- budgets prorated over a 1492-day range, for instance.
+  if(MOBILE_PANELS[name]) syncDesktopRangeFromMobile();
+  // redrawAll(), not render(): the forecast and income charts are drawn by
+  // renderForecast()/renderIncome(), which render() does not call.
+  if(MOBILE_PANELS[name]&&PANELS_STALE) redrawAll();
+  flushPendingCharts(document.querySelector(`[data-mobile-screen="${name}"]`));
+  setDocumentTitle(name==="cashflow"?"Cash Flow":name==="activity"?"Activity":name==="analytics"?"Analytics":name==="plans"?"Budgets & Goals":name==="accounts"?"Accounts":name==="insights"?"Insights":name==="more"?"More":"Dashboard");
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 function openMobileCashflow(){
   if(location.hash!=="#cash-flow")history.pushState({mobileView:"cashflow"},"","#cash-flow");
   showMobileView("cashflow");
 }
 function closeMobileCashflow(){
-  if(!matchMedia("(max-width:700px)").matches){showTab("dashboard");return;}
+  if(!PHONE_Q.matches){showTab("dashboard");return;}
   if(location.hash==="#cash-flow"&&history.state?.mobileView==="cashflow")history.back();
   else{history.replaceState(null,"",location.pathname+location.search);showMobileView("overview");}
 }
@@ -3160,6 +3723,7 @@ function initDatePicker(){
 }
 
 function openComposer(type,entryId){
+  COMPOSER_RETURN_FOCUS=document.activeElement;
   const entry=entryId?MANUAL_ENTRIES.find(row=>row.id===entryId):null; COMPOSER.id=entry?.id||null; COMPOSER.type=entry?.entry_type||type||"expense";
   COMPOSER.category=entry?.category||""; COMPOSER.expression=String(entry?.amount||0); closeDatePicker(); setEntryDate(entry?.date||dpISO(new Date()));
   $("entryName").value=entry?.name||""; $("entryAccount").value=entry?.account||"Manual"; $("entryNote").value=entry?.note||"";
@@ -3167,7 +3731,11 @@ function openComposer(type,entryId){
   $("saveEntry").className=`composer-save ${COMPOSER.type}`; $("deleteEntry").hidden=!entry; renderCalculator();renderComposerCategories();
   $("entryComposer").classList.add("open");$("entryComposer").setAttribute("aria-hidden","false");document.body.style.overflow="hidden";setTimeout(()=>$("entryName").focus(),80);
 }
-function closeComposer(){ $("entryComposer").classList.remove("open");$("entryComposer").setAttribute("aria-hidden","true");document.body.style.overflow=""; }
+function closeComposer(){
+  $("entryComposer").classList.remove("open");$("entryComposer").setAttribute("aria-hidden","true");document.body.style.overflow="";
+  if(COMPOSER_RETURN_FOCUS&&COMPOSER_RETURN_FOCUS.isConnected) COMPOSER_RETURN_FOCUS.focus();
+  COMPOSER_RETURN_FOCUS=null;
+}
 async function saveManualEntry(){
   if(ENTRY_SAVING)return;
   if(ACTIVE_PROFILE!=="owner"){showToast("This profile is read-only.","err");return;}
@@ -3195,12 +3763,12 @@ async function deleteManualEntry(){
   catch(error){MANUAL_ENTRIES=original;mergeManualData();render();renderMobile();showToast(error.message||"Could not delete entry.","err");}
 }
 function initMobileShell(){
-  if(MOBILE_SHELL_READY)return;MOBILE_SHELL_READY=true;initMobileRange();
+  if(MOBILE_SHELL_READY)return;MOBILE_SHELL_READY=true;initMobileRange();initTableCards();
   document.querySelectorAll("[data-mobile-nav]").forEach(button=>button.onclick=()=>{if(location.hash==="#cash-flow")history.replaceState(null,"",location.pathname+location.search);showMobileView(button.dataset.mobileNav);});
   document.querySelectorAll("[data-entry-type]").forEach(button=>button.onclick=()=>openComposer(button.dataset.entryType));
-  document.querySelectorAll("#mobilePeriodModes [data-mode]").forEach(button=>button.onclick=()=>{MOBILE_RANGE.mode=button.dataset.mode;MOBILE_SELECTED_CAT=null;renderMobile();});
+  document.querySelectorAll("#mobilePeriodModes [data-mode]").forEach(button=>button.onclick=()=>setMobileRange({mode:button.dataset.mode}));
   $("mobilePeriodPrev").onclick=()=>shiftMobileRange(-1);$("mobilePeriodNext").onclick=()=>shiftMobileRange(1);
-  $("mobileCustomFrom").onchange=()=>{MOBILE_RANGE.customFrom=$("mobileCustomFrom").value;renderMobile();};$("mobileCustomTo").onchange=()=>{MOBILE_RANGE.customTo=$("mobileCustomTo").value;renderMobile();};
+  $("mobileCustomFrom").onchange=()=>setMobileRange({customFrom:$("mobileCustomFrom").value});$("mobileCustomTo").onchange=()=>setMobileRange({customTo:$("mobileCustomTo").value});
   $("closeComposer").onclick=closeComposer;$("saveEntry").onclick=saveManualEntry;$("deleteEntry").onclick=deleteManualEntry;
   initDatePicker();
   const keys=["7","8","9","÷","4","5","6","×","1","2","3","-",".","0","⌫","+"];
@@ -3209,11 +3777,25 @@ function initMobileShell(){
   const openImport=()=>{showAppView("admin");setTimeout(()=>$("importSection")?.scrollIntoView({behavior:"smooth"}),80);};
   $("mobileImport").onclick=openImport;$("mobileCashflowImport").onclick=openImport;$("mobileActivityImport").onclick=openImport;$("mobileOpenAdmin").onclick=openImport;
   $("mobileOpenCashflow").onclick=openMobileCashflow;$("mobileCashflowBack").onclick=closeMobileCashflow;
-  document.querySelectorAll("[data-open-page]").forEach(button=>button.onclick=()=>showMobileView("legacy",button.dataset.openPage));
+  document.querySelectorAll("[data-open-page]").forEach(button=>button.onclick=()=>showMobileView(button.dataset.openPage));
+  document.querySelectorAll(".tx-search input").forEach(input=>{
+    let timer; input.oninput=()=>{ clearTimeout(timer); timer=setTimeout(()=>setSearchQuery(input.value),160); };
+    input.onsearch=()=>setSearchQuery(input.value);
+  });
+  document.querySelectorAll("[data-mobile-back]").forEach(button=>button.onclick=()=>showMobileView(button.dataset.mobileBack));
   $("mobileTheme").onclick=()=>$("themeToggle").click();$("mobileExport").onclick=()=>$("export").click();
-  document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("entryComposer").classList.contains("open"))closeComposer();});
-  const mobileQuery=matchMedia("(max-width:700px)");
-  const syncMobileShell=event=>{if(event.matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");else document.body.classList.remove("mobile-custom");};
+  document.addEventListener("keydown",event=>{
+    const composer=$("entryComposer"); if(!composer.classList.contains("open")) return;
+    if(event.key==="Escape"){ event.preventDefault(); closeComposer(); return; }
+    if(event.key!=="Tab") return;
+    const focusable=[...composer.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[href],[tabindex]:not([tabindex="-1"])')].filter(node=>!node.hidden&&node.offsetParent!==null);
+    if(!focusable.length) return;
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  });
+  const mobileQuery=PHONE_Q;
+  const syncMobileShell=event=>{if(event.matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");else{document.body.classList.remove("mobile-custom");releasePanels();}};
   window.addEventListener("popstate",()=>{if(mobileQuery.matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");});
   if(mobileQuery.addEventListener)mobileQuery.addEventListener("change",syncMobileShell);else mobileQuery.addListener(syncMobileShell);
   if(mobileQuery.matches)showMobileView(location.hash==="#cash-flow"?"cashflow":"overview");
@@ -3239,19 +3821,10 @@ async function loadBackend(){
   return false;
 }
 
-// ---- Profiles: the owner's live data, plus read-only bundled datasets ----
-// A bundled profile is a JSON file under ./data/ shaped like:
-//   { "name":"Rachel", "title":"Rachel's Expense Tracker",
-//     "transactions":[{date,merchant,raw,field,amount,category,account,account_type}],
-//     "chequing":[{date,desc,amount,kind,balance,internal,dep_type,is_income,account}],
-//     "payments":[{date,amount,account}],
-//     "statements":[{source,date,label,purchases,payments,interest,balance,limit,available,due}],
-//     "manual_entries":[] }
-const PROFILES=[
-  {id:"owner",  name:"Nhihad", title:"Nhihad's Expense Tracker", source:"live"},
-  {id:"rachel", name:"Rachel", title:"Rachel's Expense Tracker", source:"./data/rachel.json"},
-];
-const PROFILE_KEY="expense-active-profile";
+// ---- Profiles: owner data plus authenticated, server-authorized snapshots ----
+// Shared payloads stay in memory and are fetched only after a viewer selects one.
+const OWNER_PROFILE={id:"owner",name:"My ledger",title:"Expense Tracker",source:"live"};
+let PROFILES=[OWNER_PROFILE];
 let ACTIVE_PROFILE="owner";
 let OWNER_SNAPSHOT=null;                       // live data parked while a guest profile is shown
 const PROFILE_CACHE={};
@@ -3264,9 +3837,11 @@ function restoreData(s){
 }
 async function fetchProfileData(profile){
   if(PROFILE_CACHE[profile.id]) return PROFILE_CACHE[profile.id];
-  const response=await fetch(profile.source,{cache:"no-cache"});
-  if(!response.ok) throw new Error(`${profile.name}'s data is not available yet.`);
-  const raw=await response.json();
+  if(!sb) throw new Error("Shared profiles require a secure sign-in.");
+  const {data:row,error}=await sb.from("exp_shared_profiles").select("payload,schema_version").eq("id",profile.id).single();
+  if(error) throw error;
+  if(row.schema_version!==1) throw new Error("This shared profile uses an unsupported format.");
+  const raw=row.payload||{};
   const data={
     BASE_DATA:raw.transactions||[], CHEQUING:(raw.chequing||[]).map(r=>({...r, desc:r.desc||r.descr})),
     PAYMENTS:raw.payments||[], STATEMENTS:raw.statements||[], MANUAL_ENTRIES:raw.manual_entries||[],
@@ -3288,7 +3863,6 @@ async function switchProfile(id){
     }
   }
   ACTIVE_PROFILE=profile.id;
-  try{ localStorage.setItem(PROFILE_KEY, profile.id); }catch(e){}
   applyProfileChrome(profile);
   MOBILE_SELECTED_CAT=null;
   applyData();
@@ -3299,7 +3873,8 @@ function applyProfileChrome(profile){
   const guest=profile.source!=="live";
   document.body.classList.toggle("guest-profile",guest);
   document.querySelector(".header-row h1").textContent=profile.title;
-  document.title=profile.title;
+  const activeLabel=location.hash==="#cash-flow"?"Cash Flow":location.hash==="#admin"?"Admin":PAGE_LABEL[DASH_PREF.activeTab]||"Dashboard";
+  setDocumentTitle(activeLabel);
   $("guestBannerName").textContent=profile.name;
   $("profileSwitch").value=profile.id;
   LIVE = guest ? false : LIVE_BACKEND;          // guests never get inline category editing
@@ -3311,12 +3886,22 @@ function renderProfileOptions(){
   select.innerHTML=PROFILES.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("");
   select.value=ACTIVE_PROFILE;
   select.onchange=()=>switchProfile(select.value);
+  $("profileSwitchWrap").hidden=PROFILES.length<2;
 }
 function initProfiles(){
   renderProfileOptions();
-  let saved=null; try{ saved=localStorage.getItem(PROFILE_KEY); }catch(e){}
-  if(saved && saved!==ACTIVE_PROFILE && PROFILES.some(p=>p.id===saved)) switchProfile(saved);
-  else applyProfileChrome(profileById(ACTIVE_PROFILE));
+  applyProfileChrome(profileById(ACTIVE_PROFILE));
+}
+async function loadSharedProfiles(includeOwner=true){
+  if(!sb) return;
+  const {data,error}=await sb.from("exp_shared_profiles").select("id,slug,display_name,title,schema_version").order("display_name");
+  if(error) throw error;
+  const shared=(data||[]).filter(row=>row.schema_version===1).map(row=>({
+    id:row.id,name:row.display_name,title:row.title,source:"shared",slug:row.slug,
+  }));
+  PROFILES=[...(includeOwner?[OWNER_PROFILE]:[]),...shared];
+  renderProfileOptions();
+  return shared;
 }
 
 // (re)compute everything from the current DATA and render
@@ -3494,7 +4079,7 @@ async function commitHostedImport(){
     importStatus(inserted?`Imported ${inserted} new row${inserted===1?'':'s'}. Dashboard updated.`:"No new rows were added; everything was already imported.","ok");
     const importedDate=ACTIVE_IMPORT.dateTo; ACTIVE_IMPORT=null; ACTIVE_IMPORT_FILE=null; $("importPreview").hidden=true;
     await supaLoad(); applyData(); loadImportHistory();
-    if(importedDate){MOBILE_RANGE.mode="month";MOBILE_RANGE.anchor=importedDate;MOBILE_SELECTED_CAT=null;renderMobile();if(matchMedia("(max-width:700px)").matches)showMobileView("overview");}
+    if(importedDate){MOBILE_RANGE.mode="month";MOBILE_RANGE.anchor=importedDate;MOBILE_SELECTED_CAT=null;renderMobile();if(PHONE_Q.matches)showMobileView("overview");}
   }catch(e){ importStatus(e.message,"err"); button.disabled=false; }
 }
 async function cancelHostedImport(){
@@ -3537,9 +4122,25 @@ window.addEventListener("drop", e=>{ if(LIVE&&hasFiles(e)){ e.preventDefault(); 
 // ---- Categorization rules (live mode only) ----
 async function reloadAll(){ await loadBackend(); applyData(); if(LIVE) renderRules(); }
 
+// Rules and recategorization used to be local-only: the hosted build set LIVE=false
+// and hid the editor outright, so the deployed app -- the one actually used on a
+// phone -- could never fix a miscategorized merchant. exp_rules already exists in
+// Supabase with the same owner RLS as every other table, so route through it when
+// hosted and keep the local /api path untouched.
+function rulesHosted(){ return !!(sb && CURRENT_USER); }
+
+async function loadRules(){
+  if(rulesHosted()){
+    const {data,error}=await sb.from("exp_rules").select("id,ord,keyword,display,category").order("ord",{nullsFirst:false}).order("id");
+    if(error) throw error;
+    return data||[];
+  }
+  return fetch("/api/rules").then(r=>r.json());
+}
+
 async function renderRules(){
   let rules;
-  try{ rules=await fetch("/api/rules").then(r=>r.json()); }catch(e){ return; }
+  try{ rules=await loadRules(); }catch(e){ showToast("Could not load rules: "+e.message,"err"); return; }
   if(!Array.isArray(rules)) return;
   $("rulecount").textContent = `· ${rules.length}`;
   const tb=$("rulestable").querySelector("tbody");
@@ -3560,16 +4161,41 @@ async function renderRules(){
 }
 
 async function ruleAction(body){
-  try{ await fetch("/api/rules",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(body)}).then(r=>r.json()); }catch(e){}
-  await reloadAll();
+  if(ACTIVE_PROFILE!=="owner"){showToast("This profile is read-only.","err");return;}
+  try{
+    if(rulesHosted()){
+      const {action,id,keyword,display,category}=body;
+      const q = action==="delete" ? sb.from("exp_rules").delete().eq("id",id)
+        : action==="add"          ? sb.from("exp_rules").insert({keyword,display,category})
+        :                           sb.from("exp_rules").update({keyword,display,category}).eq("id",id);
+      const {error}=await q; if(error) throw error;
+      await renderRules();
+      showToast(action==="delete"?"Rule deleted.":"Rule saved.");
+      return;
+    }
+    await fetch("/api/rules",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body)}).then(r=>r.json());
+    await reloadAll();
+  }catch(e){ showToast("Could not save rule: "+e.message,"err"); }
 }
 
 async function recategorize(merchant, category){
   if(ACTIVE_PROFILE!=="owner"){showToast("This profile is read-only.","err");return;}
-  try{ await fetch("/api/recategorize",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({merchant, category})}).then(r=>r.json()); }catch(e){}
-  await reloadAll();
+  try{
+    if(rulesHosted()){
+      // Update the stored rows so the change survives a reload, then mirror it into
+      // the in-memory copy so every screen reflects it without a full refetch.
+      const {error}=await sb.from("exp_transactions").update({category}).eq("merchant",merchant);
+      if(error) throw error;
+      BASE_DATA.forEach(row=>{ if(row.merchant===merchant) row.category=category; });
+      mergeManualData(); applyData(); renderMobile();
+      showToast(`${merchant} → ${category}`);
+      return;
+    }
+    await fetch("/api/recategorize",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({merchant, category})}).then(r=>r.json());
+    await reloadAll();
+  }catch(e){ showToast("Could not recategorize: "+e.message,"err"); }
 }
 
 $("newCat").innerHTML = CATS.map(c=>`<option ${c==="Eating out"?"selected":""}>${c}</option>`).join("");
@@ -3779,7 +4405,18 @@ async function boot(){
 // ---- Hosted mode: Supabase auth + data (only runs when SUPA is configured) ----
 let sb = null;
 function authNote(msg, cls){ const n=$("authNote"); n.textContent=msg||""; n.className="auth-note"+(cls?" "+cls:""); }
-function showGate(msg){ if(msg)$("authMsg").textContent=msg; $("authgate").classList.add("show"); }
+function setAppLocked(locked){
+  [...document.body.children].forEach(node=>{
+    if(node.id==="authgate"||node.tagName==="SCRIPT") return;
+    if(locked){ node.setAttribute("inert",""); node.setAttribute("aria-hidden","true"); }
+    else { node.removeAttribute("inert"); node.removeAttribute("aria-hidden"); }
+  });
+}
+function showGate(msg){
+  if(msg)$("authMsg").textContent=msg;
+  $("authgate").classList.add("show"); $("authgate").setAttribute("aria-hidden","false");
+  setAppLocked(true); setDocumentTitle("Expense Tracker"); setTimeout(()=>$("authEmail").focus(),0);
+}
 
 async function supaAll(t, cols, order){      // paginate past PostgREST's 1000-row cap
   let from=0, out=[];
@@ -3809,37 +4446,50 @@ async function supaLoad(){
 
 async function supaBoot(){
   sb = window.supabase.createClient(SUPA.url, SUPA.key);
-  sb.auth.onAuthStateChange((_e, session)=>{ if(session) afterLogin(session); });
+  sb.auth.onAuthStateChange((_e, session)=>{ if(session) afterLogin(session); else if(LOGGED_IN){ LOGGED_IN=false; showGate("Your session ended. Sign in again to continue."); } });
   const { data:{ session } } = await sb.auth.getSession();
   if(session){ afterLogin(session); } else { showGate(); }
-  $("authBtn").onclick=async()=>{
+  $("authForm").onsubmit=async event=>{
+    event.preventDefault();
     const email=$("authEmail").value.trim();
     if(!email){ $("authEmail").focus(); return; }
-    authNote("Sending…");
+    $("authBtn").disabled=true; $("authBtn").setAttribute("aria-busy","true"); authNote("Sending…");
     const { error } = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: SUPA.site || (location.origin+location.pathname) } });
     authNote(error ? error.message : "✓ Check your email — tap the magic link to sign in.", error?"err":"ok");
+    $("authBtn").disabled=false; $("authBtn").removeAttribute("aria-busy");
   };
-  $("authEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") $("authBtn").click(); });
 }
 
 let LOGGED_IN=false;
 async function afterLogin(session){
   if(LOGGED_IN) return;
   const email=(session.user&&session.user.email||"").toLowerCase();
-  if(SUPA.email && email!==SUPA.email.toLowerCase()){
+  const owner=!SUPA.email||email===SUPA.email.toLowerCase();
+  let shared=[];
+  try{ shared=await loadSharedProfiles(owner)||[]; }
+  catch(e){ showGate("Couldn't verify profile access: "+e.message); return; }
+  if(!owner&&!shared.length){
     await sb.auth.signOut();
-    showGate("That account isn't authorized for this dashboard."); authNote("Signed out — use the owner's email.","err");
+    showGate("That account isn't authorized for this workspace."); authNote("Signed out — ask the owner for access.","err");
     return;
   }
   LOGGED_IN=true;
-  $("authgate").classList.remove("show");
-  try{ await supaLoad(); }catch(e){ showGate("Couldn't load your data: "+e.message); LOGGED_IN=false; return; }
-  await loadDashboardPrefs(session.user);
-  await loadPersonalState();                   // income/goals/subs/budgets from exp_* tables
-  LIVE=LIVE_BACKEND=false;                     // hosted v1: rules editor/upload hidden
-  $("uploadWrap").style.display="none"; $("rulesCard").style.display="none";
-  applyData();
-  initProfiles();
+  $("authgate").classList.remove("show"); $("authgate").setAttribute("aria-hidden","true"); setAppLocked(false);
+  if(owner){
+    try{ await supaLoad(); }catch(e){ showGate("Couldn't load your data: "+e.message); LOGGED_IN=false; return; }
+    await loadDashboardPrefs(session.user);
+    await loadPersonalState();                 // income/goals/subs/budgets from exp_* tables
+    // Hosted owner actions use Supabase RLS. Statement upload still goes through Admin.
+    LIVE=LIVE_BACKEND=true;
+    $("rulesCard").style.display="";
+    renderRules(); applyData(); initProfiles();
+  }else{
+    CURRENT_USER=null; BASE_DATA=[]; CHEQUING=[]; PAYMENTS=[]; STATEMENTS=[]; MANUAL_ENTRIES=[];
+    budgets={}; MANUAL_SUBS=[]; DISMISSED=new Set(); SUB_AMOUNT_OVERRIDES={}; INCOME=0; GOALS=[];
+    LIVE=LIVE_BACKEND=false; $("rulesCard").style.display="none";
+    applyData(); ACTIVE_PROFILE="owner"; await switchProfile(shared[0].id);
+  }
+  $("uploadWrap").style.display="none";
   if(location.hash==="#cash-flow") showCashflowPage();
   else if(location.hash==="#admin") showAppView("admin");
   else if(location.hash.startsWith("#tab-")){ const n=location.hash.slice(5); showTab(PAGE_ORDER.includes(n)?n:(DASH_PREF.activeTab||"dashboard")); }
@@ -3884,4 +4534,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Build the Expense Tracker dashboard.")
+    parser.add_argument(
+        "--hosted-only",
+        action="store_true",
+        help="Build the empty authenticated web shell without reading local financial files.",
+    )
+    arguments = parser.parse_args()
+    if arguments.hosted_only:
+        build_web()
+    else:
+        main()

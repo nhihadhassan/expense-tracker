@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Dataset, ManualEntry } from './types'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zgafubhzhxikuknihmnu.supabase.co'
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_REDACTED'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321'
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'local-development-key'
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
 async function localData(): Promise<Dataset> {

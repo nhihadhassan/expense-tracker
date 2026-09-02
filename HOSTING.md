@@ -4,9 +4,8 @@
 **Login:** email magic-link, restricted to **you@example.com** only.
 
 ## Architecture
-- **Vercel** (project `expense-tracker`, team nhihadhassan-2432) serves `web/index.html` — an
-  auth-gated shell with **no data baked in** (`.vercelignore` keeps all statements/CSVs/PDFs/the
-  local dashboard OFF Vercel).
+- **Vercel** (project `expense-tracker`) runs `npm run build`, which generates `web/index.html` as
+  an auth-gated shell with **no data baked in** and builds the transitional React client at `/app/`.
 - **Supabase** (project `rachel-tracker`, ref `zgafubhzhxikuknihmnu`, ca-central-1) holds the data
   in `exp_*` tables and does Auth. Every `exp_` table has **RLS** locking access to
   `auth.jwt() ->> 'email' = 'you@example.com'`. Verified: anon reads return `[]`.
@@ -53,8 +52,26 @@ publishable-key fallback and prints a warning because owner-email RLS may block 
 Do not print, commit, or place the secret in frontend files. The Vercel Functions use the same
 server-only key after verifying the signed-in owner.
 
-To change the frontend, edit the template in `build_dashboard.py`, run `python3 build_dashboard.py`
-(regenerates `web/index.html`), then `npx vercel deploy --prod --yes`.
+To change the frontend, edit the root template in `build_dashboard.py` and/or the React source,
+then run `npm run verify`. Production deploys must come from the sanitized GitHub `main` branch so
+the deployment commit is reproducible and auditable.
+
+## Read-only shared profiles
+
+Shared financial snapshots are stored in `exp_shared_profiles` and authorized by the
+`exp_shared_profile_members` allowlist. Apply only the tracked shared-profile migration, verify its
+RLS checks against an isolated local/test database, and provision a snapshot from a trusted machine:
+
+```sh
+SUPABASE_URL=... SUPABASE_SECRET_KEY=... python3 tools/provision_shared_profile.py \
+  --payload /private/path/snapshot.json \
+  --owner owner@example.com \
+  --viewer viewer@example.com \
+  --slug household-view --name "Household view"
+```
+
+The payload file must remain outside Git. Provisioning uses the server key and should never be
+called from frontend code. No placeholder profile is inserted by the migration.
 
 ## Hosted import setup
 

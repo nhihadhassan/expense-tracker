@@ -4,8 +4,11 @@
   "description": "A local-first, private personal-finance dashboard that parses bank and credit-card statements — **Scotiabank, Tangerine, Amex, and BMO** — into one unified view with budgets, recurring-charge detection, anomaly alerts, and spending forecasts. Everything runs on your machine — no accounts, no cloud, no data leaves your computer.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "python3 build_dashboard.py --hosted-only && npm run build:app",
+    "build:app": "tsc -b && vite build",
     "generate:legacy": "python3 build_dashboard.py",
+    "privacy:check": "python3 tools/privacy_check.py",
+    "verify": "npm test && npm run build && npm run privacy:check",
     "test": "vitest run",
     "preview": "vite preview"
   },

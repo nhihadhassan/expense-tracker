@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">Expense Tracker</title>
+  <desc id="description">A private personal finance workspace.</desc>
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientTransform="translate(600 35) rotate(90) scale(650 920)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#183e5d"/>
+      <stop offset="0.5" stop-color="#081d32"/>
+      <stop offset="1" stop-color="#051424"/>
+    </radialGradient>
+    <linearGradient id="line" x1="320" y1="464" x2="906" y2="288" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#4edea3"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="24" stdDeviation="26" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1030" cy="85" r="240" fill="#8b5cf6" opacity="0.08"/>
+  <circle cx="145" cy="565" r="265" fill="#4edea3" opacity="0.055"/>
+  <g filter="url(#shadow)">
+    <rect x="82" y="72" width="1036" height="486" rx="38" fill="#122131" fill-opacity="0.93" stroke="#fff" stroke-opacity="0.12"/>
+  </g>
+  <g transform="translate(138 132)">
+    <circle cx="48" cy="48" r="36" stroke="#19354a" stroke-width="12" fill="#0b2033"/>
+    <path d="M48 12a36 36 0 1 1-32.6 20.7" stroke="#4edea3" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <path d="M20.7 29A36 36 0 0 1 40.2 12.9" stroke="#3b82f6" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <path d="M48 29v19l14 8" stroke="#dfffee" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="138" y="285" fill="#4edea3" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="800" letter-spacing="4">PRIVATE WORKSPACE</text>
+  <text x="138" y="370" fill="#f3f7ff" font-family="Inter,system-ui,sans-serif" font-size="76" font-weight="780" letter-spacing="-3">Expense Tracker</text>
+  <text x="138" y="426" fill="#a8b5c8" font-family="Inter,system-ui,sans-serif" font-size="28">Your money, clearly.</text>
+  <path d="M714 438c44-4 78-49 119-56 42-8 65 32 103 20 40-12 66-73 113-99" stroke="url(#line)" stroke-width="12" stroke-linecap="round" fill="none"/>
+  <circle cx="714" cy="438" r="10" fill="#3b82f6"/>
+  <circle cx="833" cy="382" r="10" fill="#54c5f8"/>
+  <circle cx="936" cy="402" r="10" fill="#67d9ab"/>
+  <circle cx="1049" cy="303" r="10" fill="#4edea3"/>
+</svg>

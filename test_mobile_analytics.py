@@ -47,7 +47,11 @@ def run():
     assert '"#cash-flow"' in source
     assert 'data-cashflow-page' in source
     assert 'function showCashflowPage()' in source
-    assert '["overview","cashflow","activity","more"]' in source
+    assert '["overview","cashflow","activity","analytics","plans","more","accounts","insights"]' in source
+    for screen in ("analytics", "plans", "accounts", "insights"):
+        assert f'data-mobile-screen="{screen}"' in source
+    assert "function adoptPanels(screenName)" in source
+    assert "function setSearchQuery(value)" in source
     assert 'mobileQuery.addEventListener("change",syncMobileShell)' in source
     assert source.count('if(location.hash==="#cash-flow") showCashflowPage();') == 2
     assert bounds("day", "2026-08-05") == ("2026-08-05", "2026-08-05")

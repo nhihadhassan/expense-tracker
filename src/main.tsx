@@ -5,7 +5,7 @@ import App from './App'
 import './styles.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode><BrowserRouter><App /></BrowserRouter></React.StrictMode>,
+  <React.StrictMode><BrowserRouter basename="/app"><App /></BrowserRouter></React.StrictMode>,
 )
 
 if ('serviceWorker' in navigator) {

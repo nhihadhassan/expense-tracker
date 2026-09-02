@@ -1,7 +1,7 @@
 {
-  "name": "Nhihad's Expense Tracker",
+  "name": "Expense Tracker",
   "short_name": "Expense Tracker",
-  "description": "A private, local-first treasury dashboard.",
+  "description": "A private personal finance workspace.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

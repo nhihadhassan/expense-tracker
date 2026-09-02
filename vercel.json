@@ -1,10 +1,27 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "web",
+  "buildCommand": "npm run build",
   "cleanUrls": true,
   "framework": null,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()" }
+      ]
+    }
+  ],
   "rewrites": [
-    { "source": "/app/(.*)", "destination": "/app/index.html" }
+    { "source": "/app/cash-flow", "destination": "/app" },
+    { "source": "/app/activity", "destination": "/app" },
+    { "source": "/app/analytics", "destination": "/app" },
+    { "source": "/app/plans", "destination": "/app" },
+    { "source": "/app/more", "destination": "/app" }
   ],
   "functions": {
     "api/**/*.py": {
