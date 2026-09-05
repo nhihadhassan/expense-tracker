@@ -12,6 +12,15 @@ Everything runs on your machine — no accounts, no cloud, no data leaves your c
 > SQLite DB, and any transcribed statements are git-ignored and stay on your machine.
 > Every figure, merchant, and card number in this repo is fabricated sample data.
 
+## Stack
+
+| Concern | Choice |
+| --- | --- |
+| Parsing | Python (stdlib only) — bank/credit-card statement PDFs into normalized rows |
+| Storage | SQLite locally; optional Supabase for the hosted, auth-gated build |
+| Dashboard | Self-contained HTML with Chart.js, plus a React/Vite app |
+| Server | Zero-dependency stdlib HTTP server exposing a small JSON API |
+
 ## Two ways to run it
 
 ### 1. Static dashboard (simplest — double-click)
